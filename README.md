@@ -18,8 +18,8 @@ Scripts d'installation automatisés pour un cluster Kubernetes 1.32 en haute dis
 - [Configuration](#configuration)
 - [Vérification](#vérification)
 - [Troubleshooting](#troubleshooting)
+- [Compatibilité Debian](#compatibilité-debian)
 - [Contribution](#contribution)
-- [License](#license)
 
 ## 🏗️ Architecture
 
@@ -363,6 +363,19 @@ kubectl drain <node-name> --ignore-daemonsets --delete-emptydir-data
 kubectl uncordon <node-name>
 ```
 
+## 🐧 Compatibilité Debian
+
+Les scripts sont **100% compatibles** avec Debian 12 (Bookworm) et Debian 13 (Trixie).
+
+Pour plus de détails, consultez le guide complet : **[DEBIAN-COMPATIBILITY.md](DEBIAN-COMPATIBILITY.md)**
+
+Points clés :
+- ✅ Même gestionnaire de paquets (APT)
+- ✅ Même système d'init (systemd)
+- ✅ Repository Kubernetes officiel pour Debian
+- ✅ Détection automatique de l'interface réseau
+- ⚠️ Installer `ufw` si nécessaire : `sudo apt install -y ufw`
+
 ## 📖 Documentation complémentaire
 
 - [Documentation officielle Kubernetes](https://kubernetes.io/docs/)
@@ -382,13 +395,11 @@ Les contributions sont les bienvenues ! N'hésitez pas à:
 4. Push vers la branche (`git push origin feature/amelioration`)
 5. Ouvrir une Pull Request
 
-## 📝 License
-
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
-
 ## 👤 Auteur
 
 Créé pour faciliter le déploiement de clusters Kubernetes en haute disponibilité.
+
+**Projet Open Source** - Libre d'utilisation, modification et distribution.
 
 ## ⭐ Remerciements
 
