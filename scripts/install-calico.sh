@@ -1,7 +1,7 @@
 #!/bin/bash
 ################################################################################
 # Script d'installation de Calico CNI
-# Compatible avec: Kubernetes 1.32
+# Compatible avec: Kubernetes 1.32.2
 # Auteur: azurtech56
 # Version: 1.0
 ################################################################################

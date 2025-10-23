@@ -1,7 +1,7 @@
 #!/bin/bash
 ################################################################################
 # Script d'installation de la stack de monitoring (Prometheus + Grafana + cAdvisor)
-# Compatible avec: Kubernetes 1.32
+# Compatible avec: Kubernetes 1.32.2
 # Auteur: azurtech56
 # Version: 1.0
 ################################################################################
