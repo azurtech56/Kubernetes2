@@ -140,11 +140,47 @@ kubectl wait --namespace ${MONITORING_NAMESPACE} \
     --all \
     --timeout=${KUBECTL_WAIT_TIMEOUT} || true
 
-# Attendre un délai supplémentaire pour que les webhooks Prometheus Operator soient opérationnels
-echo -e "${YELLOW}Attente de l'initialisation des webhooks Prometheus Operator (15 secondes)...${NC}"
-sleep 15
+# Attendre que les services webhook Prometheus Operator soient disponibles
+echo -e "${YELLOW}Attente des services webhook Prometheus Operator...${NC}"
 
-echo -e "${GREEN}✓ Services démarrés et webhooks prêts${NC}"
+# Vérifier le webhook prometheus-operator
+max_attempts=30
+attempt=0
+while [ $attempt -lt $max_attempts ]; do
+    if kubectl get endpoints -n ${MONITORING_NAMESPACE} prometheus-kube-prometheus-admission &>/dev/null; then
+        endpoints=$(kubectl get endpoints -n ${MONITORING_NAMESPACE} prometheus-kube-prometheus-admission -o jsonpath='{.subsets[*].addresses[*].ip}' 2>/dev/null)
+        if [ -n "$endpoints" ]; then
+            echo -e "${GREEN}✓ Service webhook admission disponible (endpoints: $endpoints)${NC}"
+            break
+        fi
+    fi
+    attempt=$((attempt + 1))
+    echo -ne "\r  Tentative $attempt/$max_attempts..."
+    sleep 2
+done
+echo ""
+
+# Vérifier que les webhooks sont enregistrés dans l'API server
+echo -e "${YELLOW}Vérification de l'enregistrement des webhooks dans l'API...${NC}"
+max_attempts=20
+attempt=0
+while [ $attempt -lt $max_attempts ]; do
+    webhook_count=$(kubectl get validatingwebhookconfigurations.admissionregistration.k8s.io 2>/dev/null | grep -c "prometheus" || echo "0")
+    if [ "$webhook_count" -gt 0 ]; then
+        echo -e "${GREEN}✓ Webhooks Prometheus Operator enregistrés ($webhook_count configurations)${NC}"
+        break
+    fi
+    attempt=$((attempt + 1))
+    echo -ne "\r  Tentative $attempt/$max_attempts..."
+    sleep 2
+done
+echo ""
+
+# Délai supplémentaire pour stabilisation complète
+echo -e "${YELLOW}Stabilisation des webhooks Prometheus Operator (30 secondes)...${NC}"
+sleep 30
+
+echo -e "${GREEN}✓ Services démarrés et webhooks opérationnels${NC}"
 
 echo ""
 echo -e "${YELLOW}Récupération du mot de passe Grafana...${NC}"

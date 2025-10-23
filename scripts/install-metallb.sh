@@ -87,11 +87,29 @@ kubectl wait --namespace metallb-system \
     --all \
     --timeout=${KUBECTL_WAIT_TIMEOUT_QUICK} || true
 
-# Attendre un délai supplémentaire pour que les webhooks soient opérationnels
-echo -e "${YELLOW}Attente de l'initialisation des webhooks (15 secondes)...${NC}"
-sleep 15
+# Attendre que le service webhook soit disponible
+echo -e "${YELLOW}Attente de la disponibilité du service webhook...${NC}"
+max_attempts=30
+attempt=0
+while [ $attempt -lt $max_attempts ]; do
+    if kubectl get endpoints -n metallb-system metallb-webhook-service &>/dev/null; then
+        endpoints=$(kubectl get endpoints -n metallb-system metallb-webhook-service -o jsonpath='{.subsets[*].addresses[*].ip}' 2>/dev/null)
+        if [ -n "$endpoints" ]; then
+            echo -e "${GREEN}✓ Service webhook disponible (endpoints: $endpoints)${NC}"
+            break
+        fi
+    fi
+    attempt=$((attempt + 1))
+    echo -ne "\r  Tentative $attempt/$max_attempts..."
+    sleep 2
+done
+echo ""
 
-echo -e "${GREEN}✓ MetalLB démarré et webhooks prêts${NC}"
+# Délai supplémentaire pour stabilisation complète des webhooks
+echo -e "${YELLOW}Stabilisation des webhooks (30 secondes)...${NC}"
+sleep 30
+
+echo -e "${GREEN}✓ MetalLB démarré et webhooks opérationnels${NC}"
 
 echo -e "${YELLOW}[3/3] Configuration de MetalLB...${NC}"
 

@@ -58,12 +58,12 @@ if [[ ! $confirm =~ ^[Yy]$ ]]; then
     exit 1
 fi
 
-echo -e "${YELLOW}[1/5] Installation de cert-manager ${CERT_MANAGER_VERSION}...${NC}"
+echo -e "${YELLOW}[1/6] Installation de cert-manager ${CERT_MANAGER_VERSION}...${NC}"
 kubectl apply -f "https://github.com/cert-manager/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.yaml"
 
 echo -e "${GREEN}✓ cert-manager ${CERT_MANAGER_VERSION} installé${NC}"
 
-echo -e "${YELLOW}[2/5] Attente du démarrage de cert-manager...${NC}"
+echo -e "${YELLOW}[2/6] Attente du démarrage de cert-manager...${NC}"
 kubectl wait --for=condition=Ready pods -l app=cert-manager -n cert-manager --timeout=${KUBECTL_WAIT_TIMEOUT_SHORT} || true
 kubectl wait --for=condition=Ready pods -l app=webhook -n cert-manager --timeout=${KUBECTL_WAIT_TIMEOUT_SHORT} || true
 kubectl wait --for=condition=Ready pods -l app=cainjector -n cert-manager --timeout=${KUBECTL_WAIT_TIMEOUT_SHORT} || true
@@ -75,19 +75,52 @@ kubectl wait --namespace cert-manager \
     --all \
     --timeout=${KUBECTL_WAIT_TIMEOUT_QUICK} || true
 
-# Attendre un délai supplémentaire pour que les webhooks soient opérationnels
-echo -e "${YELLOW}Attente de l'initialisation des webhooks (15 secondes)...${NC}"
-sleep 15
+# Attendre que le service webhook cert-manager soit disponible
+echo -e "${YELLOW}Attente de la disponibilité du service webhook cert-manager...${NC}"
+max_attempts=30
+attempt=0
+while [ $attempt -lt $max_attempts ]; do
+    if kubectl get endpoints -n cert-manager cert-manager-webhook &>/dev/null; then
+        endpoints=$(kubectl get endpoints -n cert-manager cert-manager-webhook -o jsonpath='{.subsets[*].addresses[*].ip}' 2>/dev/null)
+        if [ -n "$endpoints" ]; then
+            echo -e "${GREEN}✓ Service webhook disponible (endpoints: $endpoints)${NC}"
+            break
+        fi
+    fi
+    attempt=$((attempt + 1))
+    echo -ne "\r  Tentative $attempt/$max_attempts..."
+    sleep 2
+done
+echo ""
 
-echo -e "${GREEN}✓ cert-manager démarré et webhooks prêts${NC}"
+# Vérifier que le webhook est enregistré dans l'API server
+echo -e "${YELLOW}Vérification de l'enregistrement du webhook dans l'API...${NC}"
+max_attempts=20
+attempt=0
+while [ $attempt -lt $max_attempts ]; do
+    if kubectl get validatingwebhookconfigurations.admissionregistration.k8s.io cert-manager-webhook &>/dev/null; then
+        echo -e "${GREEN}✓ Webhook enregistré dans l'API server${NC}"
+        break
+    fi
+    attempt=$((attempt + 1))
+    echo -ne "\r  Tentative $attempt/$max_attempts..."
+    sleep 2
+done
+echo ""
 
-echo -e "${YELLOW}[3/5] Ajout du repository Helm Rancher...${NC}"
+# Délai supplémentaire pour stabilisation complète des webhooks
+echo -e "${YELLOW}Stabilisation des webhooks cert-manager (30 secondes)...${NC}"
+sleep 30
+
+echo -e "${GREEN}✓ cert-manager démarré et webhooks opérationnels${NC}"
+
+echo -e "${YELLOW}[3/6] Ajout du repository Helm Rancher...${NC}"
 helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
 helm repo update
 
 echo -e "${GREEN}✓ Repository ajouté${NC}"
 
-echo -e "${YELLOW}[4/5] Installation de Rancher via Helm...${NC}"
+echo -e "${YELLOW}[4/6] Installation de Rancher via Helm...${NC}"
 kubectl create namespace cattle-system || true
 
 helm install rancher rancher-latest/rancher \
@@ -98,10 +131,41 @@ helm install rancher rancher-latest/rancher \
 
 echo -e "${GREEN}✓ Rancher installé${NC}"
 
-echo -e "${YELLOW}[5/5] Exposition de Rancher via LoadBalancer...${NC}"
+echo -e "${YELLOW}[5/5] Attente du démarrage de Rancher...${NC}"
 
 # Attendre que le deployment soit prêt
 kubectl wait --for=condition=Available deployment/rancher -n cattle-system --timeout=${KUBECTL_WAIT_TIMEOUT} || true
+
+# Attendre que tous les pods Rancher soient prêts
+echo -e "${YELLOW}Attente de tous les pods Rancher...${NC}"
+kubectl wait --namespace cattle-system \
+    --for=condition=ready pod \
+    --all \
+    --timeout=${KUBECTL_WAIT_TIMEOUT} || true
+
+# Attendre que les services webhook Rancher soient disponibles (si existants)
+echo -e "${YELLOW}Vérification des services Rancher...${NC}"
+max_attempts=20
+attempt=0
+while [ $attempt -lt $max_attempts ]; do
+    rancher_ready=$(kubectl get pods -n cattle-system -l app=rancher -o jsonpath='{.items[*].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null | grep -c "True" || echo "0")
+    if [ "$rancher_ready" -gt 0 ]; then
+        echo -e "${GREEN}✓ Rancher complètement démarré ($rancher_ready pods prêts)${NC}"
+        break
+    fi
+    attempt=$((attempt + 1))
+    echo -ne "\r  Tentative $attempt/$max_attempts..."
+    sleep 3
+done
+echo ""
+
+# Délai pour stabilisation de Rancher
+echo -e "${YELLOW}Stabilisation de Rancher (20 secondes)...${NC}"
+sleep 20
+
+echo -e "${GREEN}✓ Rancher opérationnel${NC}"
+
+echo -e "${YELLOW}[6/6] Exposition de Rancher via LoadBalancer...${NC}"
 
 kubectl expose deployment rancher \
   --type=LoadBalancer \
