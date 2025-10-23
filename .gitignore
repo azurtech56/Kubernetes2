@@ -6,10 +6,10 @@ join-commands.txt
 admin.conf
 
 # Generated configs
-metallb-config.yaml
-cadvisor.yaml
-prometheus-values.yaml
-kubelet-ha.yaml
+#metallb-config.yaml
+#cadvisor.yaml
+#prometheus-values.yaml
+#kubelet-ha.yaml
 
 # Sauvegarde config
 config.sh.backup
