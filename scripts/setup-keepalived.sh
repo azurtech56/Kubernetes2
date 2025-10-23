@@ -86,6 +86,9 @@ fi
 
 echo -e "${YELLOW}Création du fichier de configuration keepalived...${NC}"
 
+# Créer le répertoire si nécessaire
+mkdir -p /etc/keepalived
+
 cat > /etc/keepalived/keepalived.conf <<EOF
 vrrp_instance VI_1 {
     state ${STATE}

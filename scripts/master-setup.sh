@@ -32,7 +32,7 @@ ufw allow 10250/tcp     # Kubelet API
 ufw allow 10251/tcp     # kube-scheduler
 ufw allow 10252/tcp     # kube-controller-manager
 ufw allow 10255/tcp     # Read-only Kubelet API
-ufw allow proto vrrp    # keepalived VRRP
+ufw allow from any to any proto vrrp    # keepalived VRRP
 ufw --force enable
 ufw reload
 echo -e "${GREEN}✓ Firewall configuré pour Master${NC}"
