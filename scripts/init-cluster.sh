@@ -81,7 +81,7 @@ while true; do
     fi
 done
 
-CERT_SANS_API="${CERT_SANS_API}\n    - \"localhost\"\n    - \"127.0.0.1\""
+CERT_SANS_API="${CERT_SANS_API}\n    - \"localhost\"\n    - \"127.0.0.1\"\n    - \"::1\""
 
 # Générer le fichier de configuration
 cat > kubelet-ha.yaml <<EOF
@@ -109,7 +109,6 @@ etcd:
     dataDir: "/var/lib/etcd"
     certSANs:
 $(echo -e "$CERT_SANS_API")
-      - "::1"
 controllerManager: {}
 scheduler: {}
 ---
