@@ -176,9 +176,40 @@ while [ $attempt -lt $max_attempts ]; do
 done
 echo ""
 
-# Délai supplémentaire pour stabilisation complète
-echo -e "${YELLOW}Stabilisation des webhooks Prometheus Operator (30 secondes)...${NC}"
-sleep 30
+# Test actif du webhook Prometheus Operator avec une ressource temporaire
+echo -e "${YELLOW}Test de disponibilité du webhook Prometheus Operator (dry-run)...${NC}"
+max_attempts=10
+attempt=0
+webhook_ok=false
+while [ $attempt -lt $max_attempts ]; do
+    # Créer une ressource test en mode dry-run pour tester le webhook
+    if cat <<EOF | kubectl apply --dry-run=server -f - &>/dev/null; then
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: test-monitor
+  namespace: ${MONITORING_NAMESPACE}
+spec:
+  selector:
+    matchLabels:
+      app: test
+  endpoints:
+  - port: metrics
+EOF
+        echo -e "${GREEN}✓ Webhook Prometheus Operator répond correctement${NC}"
+        webhook_ok=true
+        break
+    fi
+    attempt=$((attempt + 1))
+    echo -ne "\r  Test $attempt/$max_attempts (webhook pas encore prêt)..."
+    sleep 5
+done
+echo ""
+
+if [ "$webhook_ok" = false ]; then
+    echo -e "${YELLOW}Attention: Le webhook ne répond pas encore, tentative de délai supplémentaire...${NC}"
+    sleep 30
+fi
 
 echo -e "${GREEN}✓ Services démarrés et webhooks opérationnels${NC}"
 

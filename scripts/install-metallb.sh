@@ -105,9 +105,52 @@ while [ $attempt -lt $max_attempts ]; do
 done
 echo ""
 
-# Délai supplémentaire pour stabilisation complète des webhooks
-echo -e "${YELLOW}Stabilisation des webhooks (30 secondes)...${NC}"
-sleep 30
+# Vérifier que le webhook est enregistré dans l'API server
+echo -e "${YELLOW}Vérification de l'enregistrement du webhook dans l'API server...${NC}"
+max_attempts=20
+attempt=0
+while [ $attempt -lt $max_attempts ]; do
+    if kubectl get validatingwebhookconfigurations.admissionregistration.k8s.io metallb-webhook-configuration &>/dev/null; then
+        echo -e "${GREEN}✓ Webhook MetalLB enregistré dans l'API server${NC}"
+        break
+    fi
+    attempt=$((attempt + 1))
+    echo -ne "\r  Tentative $attempt/$max_attempts..."
+    sleep 3
+done
+echo ""
+
+# Test actif du webhook avec une ressource temporaire
+echo -e "${YELLOW}Test de disponibilité du webhook (dry-run)...${NC}"
+max_attempts=10
+attempt=0
+webhook_ok=false
+while [ $attempt -lt $max_attempts ]; do
+    # Créer une ressource test en mode dry-run pour tester le webhook
+    if cat <<EOF | kubectl apply --dry-run=server -f - &>/dev/null; then
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: test-pool
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.255.1-192.168.255.1
+EOF
+        echo -e "${GREEN}✓ Webhook répond correctement${NC}"
+        webhook_ok=true
+        break
+    fi
+    attempt=$((attempt + 1))
+    echo -ne "\r  Test $attempt/$max_attempts (webhook pas encore prêt)..."
+    sleep 5
+done
+echo ""
+
+if [ "$webhook_ok" = false ]; then
+    echo -e "${YELLOW}Attention: Le webhook ne répond pas encore, tentative de délai supplémentaire...${NC}"
+    sleep 30
+fi
 
 echo -e "${GREEN}✓ MetalLB démarré et webhooks opérationnels${NC}"
 

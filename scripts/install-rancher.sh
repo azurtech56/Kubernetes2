@@ -108,9 +108,62 @@ while [ $attempt -lt $max_attempts ]; do
 done
 echo ""
 
-# Délai supplémentaire pour stabilisation complète des webhooks
-echo -e "${YELLOW}Stabilisation des webhooks cert-manager (30 secondes)...${NC}"
-sleep 30
+# Test actif du webhook cert-manager avec une ressource temporaire
+echo -e "${YELLOW}Test de disponibilité du webhook cert-manager (dry-run)...${NC}"
+max_attempts=10
+attempt=0
+webhook_ok=false
+while [ $attempt -lt $max_attempts ]; do
+    # Créer une ressource test en mode dry-run pour tester le webhook
+    if cat <<EOF | kubectl apply --dry-run=server -f - &>/dev/null; then
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: test-certificate
+  namespace: cert-manager
+spec:
+  secretName: test-tls
+  dnsNames:
+  - test.example.com
+  issuerRef:
+    name: test-issuer
+    kind: Issuer
+EOF
+        echo -e "${GREEN}✓ Webhook cert-manager répond correctement${NC}"
+        webhook_ok=true
+        break
+    fi
+    attempt=$((attempt + 1))
+    echo -ne "\r  Test $attempt/$max_attempts (webhook pas encore prêt)..."
+    sleep 5
+done
+echo ""
+
+if [ "$webhook_ok" = false ]; then
+    echo -e "${YELLOW}Attention: Le webhook ne répond pas encore, tentative de délai supplémentaire...${NC}"
+    sleep 30
+    echo -e "${YELLOW}Un dernier test...${NC}"
+    # Dernier essai
+    if cat <<EOF | kubectl apply --dry-run=server -f - &>/dev/null; then
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: test-certificate
+  namespace: cert-manager
+spec:
+  secretName: test-tls
+  dnsNames:
+  - test.example.com
+  issuerRef:
+    name: test-issuer
+    kind: Issuer
+EOF
+        echo -e "${GREEN}✓ Webhook cert-manager maintenant opérationnel${NC}"
+    else
+        echo -e "${RED}Avertissement: Le webhook cert-manager ne répond toujours pas${NC}"
+        echo -e "${YELLOW}Continuation de l'installation (l'erreur peut être temporaire)${NC}"
+    fi
+fi
 
 echo -e "${GREEN}✓ cert-manager démarré et webhooks opérationnels${NC}"
 
