@@ -7,6 +7,8 @@
 
 Scripts d'installation automatisés pour un cluster Kubernetes 1.32 en haute disponibilité avec keepalived, MetalLB, Rancher et monitoring (Prometheus + Grafana).
 
+> 🚀 **Pressé ?** Consultez le guide [QUICKSTART.md](QUICKSTART.md) pour installer en 10 minutes !
+
 ## 📋 Table des matières
 
 - [Architecture](#architecture)
@@ -15,6 +17,7 @@ Scripts d'installation automatisés pour un cluster Kubernetes 1.32 en haute dis
 - [Installation détaillée](#installation-détaillée)
 - [Composants installés](#composants-installés)
 - [Scripts disponibles](#scripts-disponibles)
+- [Menu interactif](#menu-interactif)
 - [Configuration](#configuration)
 - [Vérification](#vérification)
 - [Troubleshooting](#troubleshooting)
@@ -76,12 +79,36 @@ Les scripts installeront automatiquement:
 
 ## 🚀 Installation rapide
 
-### 1. Cloner le repository
+### Méthode 1: Menu interactif (Recommandé)
 
 ```bash
+# 1. Cloner le repository
 git clone https://github.com/votre-user/kubernetes-ha-setup.git
 cd kubernetes-ha-setup/scripts
+
+# 2. Rendre les scripts exécutables
 chmod +x *.sh
+
+# 3. (Optionnel) Modifier la configuration
+nano config.sh
+
+# 4. Lancer le menu interactif
+./k8s-menu.sh
+```
+
+Le **menu interactif** vous guide à travers toutes les étapes d'installation avec un assistant intégré !
+
+### Méthode 2: Installation manuelle
+
+```bash
+# 1. Cloner le repository
+git clone https://github.com/votre-user/kubernetes-ha-setup.git
+cd kubernetes-ha-setup/scripts
+
+# 2. Rendre les scripts exécutables
+chmod +x *.sh
+
+# 3. Continuer avec les étapes ci-dessous...
 ```
 
 ### 2. Configuration de tous les nœuds
@@ -169,7 +196,20 @@ sudo kubeadm join k8s:6443 --token <token> \
 
 ## 📦 Installation détaillée
 
-Pour une installation pas à pas détaillée, consultez le fichier [Installation Kubernetes 1.32.txt](Installation%20Kubernetes%201.32.txt).
+### Guides de référence
+
+Pour une installation manuelle détaillée, consultez les guides dans le dossier [docs/](docs/) :
+
+- **[Installation Kubernetes 1.32.txt](docs/Installation%20Kubernetes%201.32.txt)** - Guide complet pas à pas
+- **[Configuration HA avec keepalived.txt](docs/Configuration%20HA%20avec%20keepalived.txt)** - Guide détaillé keepalived
+
+Ces guides sont utiles pour :
+- 📖 Comprendre en détail chaque étape
+- 🎓 Apprendre les commandes Kubernetes
+- 🔧 Personnaliser des configurations avancées
+- 🐛 Diagnostiquer des problèmes
+
+💡 **Recommandation** : Pour une installation moderne et rapide, utilisez plutôt le [menu interactif](#menu-interactif) !
 
 ## 🔧 Composants installés
 
@@ -207,7 +247,116 @@ Pour une installation pas à pas détaillée, consultez le fichier [Installation
 | `install-rancher.sh` | Installation de Rancher | Premier master |
 | `install-monitoring.sh` | Installation de Prometheus + Grafana | Premier master |
 
+### Script de gestion
+
+| Script | Description |
+|--------|-------------|
+| **`k8s-menu.sh`** | **Menu interactif principal** - Interface console pour gérer toute l'installation |
+| `config.sh` | Fichier de configuration centralisé (IPs, hostnames, etc.) |
+
+## 📱 Menu interactif
+
+Le **menu interactif** `k8s-menu.sh` est l'outil principal pour installer et gérer votre cluster Kubernetes.
+
+### Lancement
+
+```bash
+cd kubernetes-ha-setup/scripts
+./k8s-menu.sh
+```
+
+### Fonctionnalités principales
+
+- 🎯 **Assistant d'installation** - Installation guidée selon le rôle du nœud (Master 1, Master 2/3, Worker)
+- 📜 **Installation par étapes** - Contrôle manuel de chaque script
+- 🧩 **Gestion des add-ons** - Installation de MetalLB, Rancher, Monitoring
+- 🔧 **Gestion du cluster** - Affichage des nœuds, pods, services, génération de tokens
+- 🔍 **Diagnostics** - Vérification de keepalived, MetalLB, Calico, logs des pods
+- 📖 **Aide intégrée** - Architecture, ordre d'installation, ports, commandes utiles
+
+### Exemple d'utilisation
+
+```
+╔════════════════════════════════════════════════════════════════╗
+║  Kubernetes 1.32 - Haute Disponibilité (HA)                   ║
+║  Menu d'installation et de gestion                            ║
+╚════════════════════════════════════════════════════════════════╝
+
+═══ MENU PRINCIPAL ═══
+
+[1]  Installation complète (Assistant)  ← Recommandé pour débuter
+[2]  Installation par étapes
+[3]  Installation des Add-ons
+[4]  Gestion du cluster
+[5]  Vérifications et diagnostics
+[6]  Informations et aide
+
+[0]  Quitter
+```
+
+📖 **Guide complet du menu** : [MENU-GUIDE.md](MENU-GUIDE.md)
+
 ## ⚙️ Configuration
+
+### Fichier de configuration centralisé
+
+Avant de lancer l'installation, personnalisez votre cluster en modifiant le fichier **`config.sh`** :
+
+```bash
+nano scripts/config.sh
+```
+
+#### Variables principales :
+
+```bash
+# Nom de domaine (tous les FQDN seront générés automatiquement)
+export DOMAIN_NAME="home.local"
+
+# IP Virtuelle et Masters
+export VIP="192.168.0.200"
+export MASTER1_IP="192.168.0.201"
+export MASTER2_IP="192.168.0.202"
+export MASTER3_IP="192.168.0.203"
+
+# Workers
+export WORKER1_IP="192.168.0.211"
+export WORKER2_IP="192.168.0.212"
+export WORKER3_IP="192.168.0.213"
+export WORKER_COUNT=3
+
+# MetalLB
+export METALLB_IP_START="192.168.0.210"
+export METALLB_IP_END="192.168.0.230"
+
+# Rancher
+export RANCHER_SUBDOMAIN="rancher"  # → rancher.home.local
+export RANCHER_PASSWORD="admin"
+
+# Kubernetes
+export K8S_VERSION="1.32.2"
+export POD_SUBNET="11.0.0.0/16"
+export SERVICE_SUBNET="10.0.0.1/16"
+```
+
+📖 **Guide complet de configuration** : [CONFIGURATION-GUIDE.md](CONFIGURATION-GUIDE.md)
+
+Tous les scripts utilisent automatiquement ces variables !
+
+### Afficher la configuration actuelle
+
+```bash
+source scripts/config.sh
+show_config
+```
+
+### Valider la configuration
+
+```bash
+source scripts/config.sh
+validate_config
+```
+
+### Configuration manuelle (ancienne méthode)
 
 ### Configuration /etc/hosts
 

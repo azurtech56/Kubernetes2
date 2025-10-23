@@ -11,6 +11,9 @@ cadvisor.yaml
 prometheus-values.yaml
 kubelet-ha.yaml
 
+# Sauvegarde config
+config.sh.backup
+
 # Helm
 rancher/
 *.tgz
@@ -29,3 +32,8 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Secrets
+secrets/
+*.pem
+*.key
