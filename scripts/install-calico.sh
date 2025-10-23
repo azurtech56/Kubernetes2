@@ -47,7 +47,18 @@ echo "Cela peut prendre quelques minutes..."
 kubectl wait --for=condition=Ready pods -l k8s-app=calico-node -n kube-system --timeout=${KUBECTL_WAIT_TIMEOUT} || true
 kubectl wait --for=condition=Ready pods -l k8s-app=calico-kube-controllers -n kube-system --timeout=${KUBECTL_WAIT_TIMEOUT} || true
 
-echo -e "${GREEN}✓ Calico démarré${NC}"
+# Attendre spécifiquement tous les pods Calico
+echo -e "${YELLOW}Vérification finale de tous les pods Calico...${NC}"
+kubectl wait --namespace kube-system \
+    --for=condition=ready pod \
+    --selector k8s-app=calico-node \
+    --timeout=${KUBECTL_WAIT_TIMEOUT_QUICK} || true
+
+# Délai supplémentaire pour stabilisation du réseau
+echo -e "${YELLOW}Stabilisation du réseau (10 secondes)...${NC}"
+sleep 10
+
+echo -e "${GREEN}✓ Calico démarré et réseau prêt${NC}"
 
 echo ""
 echo -e "${YELLOW}Vérification de l'installation:${NC}"

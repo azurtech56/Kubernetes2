@@ -80,7 +80,18 @@ kubectl wait --namespace metallb-system \
     --selector=app=metallb \
     --timeout=${KUBECTL_WAIT_TIMEOUT_SHORT} || true
 
-echo -e "${GREEN}✓ MetalLB démarré${NC}"
+# Attendre spécifiquement que tous les pods soient prêts
+echo -e "${YELLOW}Attente de tous les pods MetalLB...${NC}"
+kubectl wait --namespace metallb-system \
+    --for=condition=ready pod \
+    --all \
+    --timeout=${KUBECTL_WAIT_TIMEOUT_QUICK} || true
+
+# Attendre un délai supplémentaire pour que les webhooks soient opérationnels
+echo -e "${YELLOW}Attente de l'initialisation des webhooks (15 secondes)...${NC}"
+sleep 15
+
+echo -e "${GREEN}✓ MetalLB démarré et webhooks prêts${NC}"
 
 echo -e "${YELLOW}[3/3] Configuration de MetalLB...${NC}"
 

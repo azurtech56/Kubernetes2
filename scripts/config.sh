@@ -44,10 +44,10 @@ export MASTER2_FQDN="${MASTER2_HOSTNAME}.${DOMAIN_NAME}"
 export MASTER2_PRIORITY="100"
 
 # Master 3 (BACKUP keepalived)
-export MASTER3_IP="192.168.0.203"
-export MASTER3_HOSTNAME="k8s01-3"
-export MASTER3_FQDN="${MASTER3_HOSTNAME}.${DOMAIN_NAME}"
-export MASTER3_PRIORITY="99"
+#export MASTER3_IP="192.168.0.203"
+#export MASTER3_HOSTNAME="k8s01-3"
+#export MASTER3_FQDN="${MASTER3_HOSTNAME}.${DOMAIN_NAME}"
+#export MASTER3_PRIORITY="99"
 
 # Pour ajouter un 4ème master, décommentez les lignes ci-dessous :
 # export MASTER4_IP="192.168.0.204"
@@ -73,19 +73,19 @@ export MASTER3_PRIORITY="99"
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Worker 1
-export WORKER1_IP="192.168.0.211"
+export WORKER1_IP="192.168.0.203"
 export WORKER1_HOSTNAME="k8s-worker-1"
 export WORKER1_FQDN="${WORKER1_HOSTNAME}.${DOMAIN_NAME}"
 
 # Worker 2
-export WORKER2_IP="192.168.0.212"
+export WORKER2_IP="192.168.0.204"
 export WORKER2_HOSTNAME="k8s-worker-2"
 export WORKER2_FQDN="${WORKER2_HOSTNAME}.${DOMAIN_NAME}"
 
 # Worker 3
-export WORKER3_IP="192.168.0.213"
-export WORKER3_HOSTNAME="k8s-worker-3"
-export WORKER3_FQDN="${WORKER3_HOSTNAME}.${DOMAIN_NAME}"
+#export WORKER3_IP="192.168.0.213"
+#export WORKER3_HOSTNAME="k8s-worker-3"
+#export WORKER3_FQDN="${WORKER3_HOSTNAME}.${DOMAIN_NAME}"
 
 # Pour ajouter un 4ème worker, décommentez les lignes ci-dessous :
 # export WORKER4_IP="192.168.0.214"

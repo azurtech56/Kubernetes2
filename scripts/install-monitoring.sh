@@ -130,10 +130,21 @@ helm install prometheus prometheus-community/kube-prometheus-stack \
 echo -e "${GREEN}✓ Prometheus et Grafana installés${NC}"
 
 echo -e "${YELLOW}[5/5] Attente du démarrage des services...${NC}"
-kubectl wait --for=condition=Ready pods -l app.kubernetes.io/name=grafana -n ${MONITORING_NAMESPACE} --timeout=180s || true
-kubectl wait --for=condition=Ready pods -l app.kubernetes.io/name=prometheus -n ${MONITORING_NAMESPACE} --timeout=180s || true
+kubectl wait --for=condition=Ready pods -l app.kubernetes.io/name=grafana -n ${MONITORING_NAMESPACE} --timeout=${KUBECTL_WAIT_TIMEOUT_SHORT} || true
+kubectl wait --for=condition=Ready pods -l app.kubernetes.io/name=prometheus -n ${MONITORING_NAMESPACE} --timeout=${KUBECTL_WAIT_TIMEOUT_SHORT} || true
 
-echo -e "${GREEN}✓ Services démarrés${NC}"
+# Attendre spécifiquement que tous les pods soient prêts
+echo -e "${YELLOW}Attente de tous les pods monitoring...${NC}"
+kubectl wait --namespace ${MONITORING_NAMESPACE} \
+    --for=condition=ready pod \
+    --all \
+    --timeout=${KUBECTL_WAIT_TIMEOUT} || true
+
+# Attendre un délai supplémentaire pour que les webhooks Prometheus Operator soient opérationnels
+echo -e "${YELLOW}Attente de l'initialisation des webhooks Prometheus Operator (15 secondes)...${NC}"
+sleep 15
+
+echo -e "${GREEN}✓ Services démarrés et webhooks prêts${NC}"
 
 echo ""
 echo -e "${YELLOW}Récupération du mot de passe Grafana...${NC}"

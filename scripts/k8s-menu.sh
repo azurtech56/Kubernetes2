@@ -372,19 +372,22 @@ manage_cluster() {
                 ./generate-hosts.sh
                 ;;
             2)
-                kubectl get nodes -o wide
                 echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
+                echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
+                echo ""
+                watch -n 2 -c "kubectl get nodes -o wide"
                 ;;
             3)
-                kubectl get pods -A
                 echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
+                echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
+                echo ""
+                watch -n 2 -c "kubectl get pods -A"
                 ;;
             4)
-                kubectl get svc -A | grep LoadBalancer
                 echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
+                echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
+                echo ""
+                watch -n 2 -c "kubectl get svc -A | grep -E 'NAMESPACE|LoadBalancer'"
                 ;;
             5)
                 kubectl cluster-info
@@ -439,31 +442,27 @@ run_diagnostics() {
         case $choice in
             1)
                 echo ""
-                kubectl get pods -n kube-system
+                echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
                 echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
+                watch -n 2 -c "kubectl get pods -n kube-system"
                 ;;
             2)
                 echo ""
-                systemctl status keepalived --no-pager
+                echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
                 echo ""
-                ip addr | grep "192.168.0.200"
-                echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
+                watch -n 2 "echo -e '${GREEN}=== État keepalived ===${NC}' && systemctl status keepalived --no-pager | head -15 && echo '' && echo -e '${GREEN}=== IP Virtuelle ===${NC}' && ip addr | grep -A2 '192.168.0.200'"
                 ;;
             3)
                 echo ""
-                kubectl get pods -n metallb-system
+                echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
                 echo ""
-                kubectl get ipaddresspools.metallb.io -n metallb-system
-                echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
+                watch -n 2 -c "echo '=== Pods MetalLB ===' && kubectl get pods -n metallb-system && echo '' && echo '=== IP Pools ===' && kubectl get ipaddresspools.metallb.io -n metallb-system"
                 ;;
             4)
                 echo ""
-                kubectl get pods -n kube-system | grep calico
+                echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
                 echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
+                watch -n 2 -c "kubectl get pods -n kube-system | grep -E 'NAME|calico'"
                 ;;
             5)
                 echo ""
