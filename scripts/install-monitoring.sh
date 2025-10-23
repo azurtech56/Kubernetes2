@@ -2,7 +2,7 @@
 ################################################################################
 # Script d'installation de la stack de monitoring (Prometheus + Grafana + cAdvisor)
 # Compatible avec: Kubernetes 1.32
-# Auteur: Kubernetes HA Setup
+# Auteur: azurtech56
 # Version: 1.0
 ################################################################################
 

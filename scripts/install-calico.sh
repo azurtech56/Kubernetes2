@@ -2,7 +2,7 @@
 ################################################################################
 # Script d'installation de Calico CNI
 # Compatible avec: Kubernetes 1.32
-# Auteur: Kubernetes HA Setup
+# Auteur: azurtech56
 # Version: 1.0
 ################################################################################
 

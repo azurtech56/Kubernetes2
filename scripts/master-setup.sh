@@ -2,7 +2,7 @@
 ################################################################################
 # Script de configuration pour les nœuds Master Kubernetes
 # Compatible avec: Ubuntu 20.04/22.04/24.04
-# Auteur: Kubernetes HA Setup
+# Auteur: azurtech56
 # Version: 1.0
 ################################################################################
 

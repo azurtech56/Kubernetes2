@@ -2,7 +2,7 @@
 ################################################################################
 # Script d'initialisation du cluster Kubernetes (Premier master uniquement)
 # Compatible avec: Ubuntu 20.04/22.04/24.04
-# Auteur: Kubernetes HA Setup
+# Auteur: azurtech56
 # Version: 1.0
 ################################################################################
 

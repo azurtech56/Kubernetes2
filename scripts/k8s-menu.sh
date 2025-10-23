@@ -2,7 +2,7 @@
 ################################################################################
 # Menu interactif pour l'installation et la gestion de Kubernetes HA
 # Compatible avec: Ubuntu 20.04/22.04/24.04 - Debian 12/13
-# Auteur: Kubernetes HA Setup
+# Auteur: azurtech56
 # Version: 1.0
 ################################################################################
 
