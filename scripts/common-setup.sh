@@ -12,6 +12,7 @@ set -e
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo -e "${GREEN}========================================${NC}"
@@ -23,6 +24,21 @@ if [[ $EUID -ne 0 ]]; then
    echo -e "${RED}Ce script doit être exécuté en tant que root${NC}"
    exit 1
 fi
+
+# Charger la configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/config.sh" ]; then
+    echo -e "${BLUE}Chargement de la configuration depuis config.sh...${NC}"
+    source "$SCRIPT_DIR/config.sh"
+else
+    echo -e "${YELLOW}Avertissement: config.sh non trouvé, utilisation de la version par défaut${NC}"
+    K8S_VERSION="1.32.2"
+    K8S_REPO_VERSION="1.32"
+fi
+
+echo -e "${BLUE}Version Kubernetes à installer: ${K8S_VERSION}${NC}"
+echo -e "${BLUE}Repository Kubernetes: v${K8S_REPO_VERSION}${NC}"
+echo ""
 
 echo -e "${YELLOW}[1/8] Désactivation du swap...${NC}"
 swapoff -a
@@ -68,9 +84,9 @@ echo -e "${GREEN}✓ containerd installé et configuré${NC}"
 
 echo -e "${YELLOW}[6/8] Ajout du repository Kubernetes...${NC}"
 mkdir -p /etc/apt/keyrings
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
-echo -e "${GREEN}✓ Repository Kubernetes ajouté${NC}"
+curl -fsSL "https://pkgs.k8s.io/core:/stable:/v${K8S_REPO_VERSION}/deb/Release.key" | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${K8S_REPO_VERSION}/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
+echo -e "${GREEN}✓ Repository Kubernetes v${K8S_REPO_VERSION} ajouté${NC}"
 
 echo -e "${YELLOW}[7/8] Installation de kubelet, kubeadm et kubectl...${NC}"
 apt update

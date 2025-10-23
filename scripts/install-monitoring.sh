@@ -19,8 +19,23 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  Installation du Monitoring${NC}"
 echo -e "${GREEN}========================================${NC}"
 
-echo -e "${YELLOW}[1/5] Création du namespace monitoring...${NC}"
-kubectl create namespace monitoring || echo "Namespace déjà existant"
+# Charger la configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/config.sh" ]; then
+    echo -e "${BLUE}Chargement de la configuration depuis config.sh...${NC}"
+    source "$SCRIPT_DIR/config.sh"
+else
+    echo -e "${YELLOW}Avertissement: config.sh non trouvé, utilisation des valeurs par défaut${NC}"
+    MONITORING_NAMESPACE="monitoring"
+    GRAFANA_PASSWORD="prom-operator"
+fi
+
+echo -e "${BLUE}Namespace: ${MONITORING_NAMESPACE}${NC}"
+echo -e "${BLUE}Mot de passe Grafana: ${GRAFANA_PASSWORD}${NC}"
+echo ""
+
+echo -e "${YELLOW}[1/5] Création du namespace ${MONITORING_NAMESPACE}...${NC}"
+kubectl create namespace ${MONITORING_NAMESPACE} || echo "Namespace déjà existant"
 echo -e "${GREEN}✓ Namespace créé${NC}"
 
 echo -e "${YELLOW}[2/5] Installation de cAdvisor...${NC}"
@@ -30,7 +45,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: cadvisor
-  namespace: monitoring
+  namespace: ${MONITORING_NAMESPACE}
 spec:
   selector:
     matchLabels:
@@ -103,32 +118,32 @@ prometheus:
         replacement: \${1}:8080
 
 grafana:
-  adminPassword: prom-operator
+  adminPassword: ${GRAFANA_PASSWORD}
   service:
     type: LoadBalancer
 EOF
 
 helm install prometheus prometheus-community/kube-prometheus-stack \
-  --namespace monitoring \
+  --namespace ${MONITORING_NAMESPACE} \
   -f prometheus-values.yaml
 
 echo -e "${GREEN}✓ Prometheus et Grafana installés${NC}"
 
 echo -e "${YELLOW}[5/5] Attente du démarrage des services...${NC}"
-kubectl wait --for=condition=Ready pods -l app.kubernetes.io/name=grafana -n monitoring --timeout=180s || true
-kubectl wait --for=condition=Ready pods -l app.kubernetes.io/name=prometheus -n monitoring --timeout=180s || true
+kubectl wait --for=condition=Ready pods -l app.kubernetes.io/name=grafana -n ${MONITORING_NAMESPACE} --timeout=180s || true
+kubectl wait --for=condition=Ready pods -l app.kubernetes.io/name=prometheus -n ${MONITORING_NAMESPACE} --timeout=180s || true
 
 echo -e "${GREEN}✓ Services démarrés${NC}"
 
 echo ""
 echo -e "${YELLOW}Récupération du mot de passe Grafana...${NC}"
-GRAFANA_PASSWORD=$(kubectl get secret --namespace monitoring prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 -d)
+GRAFANA_PASSWORD=$(kubectl get secret --namespace ${MONITORING_NAMESPACE} prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 -d)
 
 echo ""
 echo -e "${YELLOW}Services déployés:${NC}"
-kubectl get pods -n monitoring
+kubectl get pods -n ${MONITORING_NAMESPACE}
 echo ""
-kubectl get svc -n monitoring
+kubectl get svc -n ${MONITORING_NAMESPACE}
 
 echo ""
 echo -e "${GREEN}========================================${NC}"
@@ -141,7 +156,7 @@ echo "  Identifiant: admin"
 echo "  Mot de passe: ${GRAFANA_PASSWORD}"
 echo ""
 echo -e "${YELLOW}Pour accéder à Grafana:${NC}"
-echo "  kubectl get svc -n monitoring prometheus-grafana"
+echo "  kubectl get svc -n ${MONITORING_NAMESPACE} prometheus-grafana"
 echo "  Utilisez l'IP External pour vous connecter sur le port 80"
 echo ""
 echo -e "${YELLOW}Dashboards Grafana recommandés:${NC}"

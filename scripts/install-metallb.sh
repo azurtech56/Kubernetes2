@@ -19,17 +19,43 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  Installation de MetalLB${NC}"
 echo -e "${GREEN}========================================${NC}"
 
-# Configuration par défaut
-DEFAULT_IP_RANGE="192.168.0.210-192.168.0.230"
-DEFAULT_INTERFACE="ens33"
+# Charger la configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/config.sh" ]; then
+    echo -e "${BLUE}Chargement de la configuration depuis config.sh...${NC}"
+    source "$SCRIPT_DIR/config.sh"
+else
+    echo -e "${YELLOW}Avertissement: config.sh non trouvé, utilisation des valeurs par défaut${NC}"
+    METALLB_IP_RANGE="192.168.0.210-192.168.0.230"
+    NETWORK_INTERFACE="ens33"
+    METALLB_MANIFEST_URL="https://raw.githubusercontent.com/metallb/metallb/main/config/manifests/metallb-native.yaml"
+    KUBECTL_WAIT_TIMEOUT_SHORT="90s"
+fi
 
-echo -e "${BLUE}Configuration MetalLB:${NC}"
+# Configuration par défaut (utilise config.sh)
+DEFAULT_IP_RANGE="${METALLB_IP_RANGE}"
+DEFAULT_INTERFACE="${NETWORK_INTERFACE}"
+
 echo ""
-read -p "Plage d'adresses IP [${DEFAULT_IP_RANGE}]: " IP_RANGE
-IP_RANGE=${IP_RANGE:-$DEFAULT_IP_RANGE}
+echo -e "${BLUE}Configuration MetalLB depuis config.sh:${NC}"
+echo "  Plage IP: ${DEFAULT_IP_RANGE}"
+echo "  Interface: ${DEFAULT_INTERFACE}"
+echo "  Manifest URL: ${METALLB_MANIFEST_URL}"
+echo ""
 
-read -p "Interface réseau [${DEFAULT_INTERFACE}]: " INTERFACE
-INTERFACE=${INTERFACE:-$DEFAULT_INTERFACE}
+read -p "Utiliser cette configuration? [Y/n]: " use_default
+
+if [[ $use_default =~ ^[Nn]$ ]]; then
+    echo ""
+    read -p "Plage d'adresses IP [${DEFAULT_IP_RANGE}]: " IP_RANGE
+    IP_RANGE=${IP_RANGE:-$DEFAULT_IP_RANGE}
+
+    read -p "Interface réseau [${DEFAULT_INTERFACE}]: " INTERFACE
+    INTERFACE=${INTERFACE:-$DEFAULT_INTERFACE}
+else
+    IP_RANGE="${DEFAULT_IP_RANGE}"
+    INTERFACE="${DEFAULT_INTERFACE}"
+fi
 
 echo ""
 echo -e "${YELLOW}Configuration:${NC}"
@@ -44,7 +70,7 @@ if [[ ! $confirm =~ ^[Yy]$ ]]; then
 fi
 
 echo -e "${YELLOW}[1/3] Installation de MetalLB...${NC}"
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/main/config/manifests/metallb-native.yaml
+kubectl apply -f "${METALLB_MANIFEST_URL}"
 
 echo -e "${GREEN}✓ MetalLB installé${NC}"
 
@@ -52,7 +78,7 @@ echo -e "${YELLOW}[2/3] Attente du démarrage de MetalLB...${NC}"
 kubectl wait --namespace metallb-system \
     --for=condition=ready pod \
     --selector=app=metallb \
-    --timeout=90s || true
+    --timeout=${KUBECTL_WAIT_TIMEOUT_SHORT} || true
 
 echo -e "${GREEN}✓ MetalLB démarré${NC}"
 

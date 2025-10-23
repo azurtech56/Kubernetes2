@@ -19,9 +19,24 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  Installation de Rancher${NC}"
 echo -e "${GREEN}========================================${NC}"
 
-# Configuration
-DEFAULT_HOSTNAME="rancher.home.local"
-DEFAULT_PASSWORD="admin"
+# Charger la configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/config.sh" ]; then
+    echo -e "${BLUE}Chargement de la configuration depuis config.sh...${NC}"
+    source "$SCRIPT_DIR/config.sh"
+    echo -e "${BLUE}cert-manager version: ${CERT_MANAGER_VERSION}${NC}"
+else
+    echo -e "${YELLOW}Avertissement: config.sh non trouvé, utilisation des valeurs par défaut${NC}"
+    CERT_MANAGER_VERSION="v1.17.0"
+    RANCHER_HOSTNAME="rancher.home.local"
+    RANCHER_PASSWORD="admin"
+    RANCHER_TLS_SOURCE="rancher"
+fi
+echo ""
+
+# Configuration (utilise les valeurs de config.sh comme défaut)
+DEFAULT_HOSTNAME="${RANCHER_HOSTNAME}"
+DEFAULT_PASSWORD="${RANCHER_PASSWORD}"
 
 echo -e "${BLUE}Configuration Rancher:${NC}"
 echo ""
@@ -43,15 +58,15 @@ if [[ ! $confirm =~ ^[Yy]$ ]]; then
     exit 1
 fi
 
-echo -e "${YELLOW}[1/5] Installation de cert-manager...${NC}"
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.0/cert-manager.yaml
+echo -e "${YELLOW}[1/5] Installation de cert-manager ${CERT_MANAGER_VERSION}...${NC}"
+kubectl apply -f "https://github.com/cert-manager/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.yaml"
 
-echo -e "${GREEN}✓ cert-manager installé${NC}"
+echo -e "${GREEN}✓ cert-manager ${CERT_MANAGER_VERSION} installé${NC}"
 
 echo -e "${YELLOW}[2/5] Attente du démarrage de cert-manager...${NC}"
-kubectl wait --for=condition=Ready pods -l app=cert-manager -n cert-manager --timeout=180s || true
-kubectl wait --for=condition=Ready pods -l app=webhook -n cert-manager --timeout=180s || true
-kubectl wait --for=condition=Ready pods -l app=cainjector -n cert-manager --timeout=180s || true
+kubectl wait --for=condition=Ready pods -l app=cert-manager -n cert-manager --timeout=${KUBECTL_WAIT_TIMEOUT_SHORT} || true
+kubectl wait --for=condition=Ready pods -l app=webhook -n cert-manager --timeout=${KUBECTL_WAIT_TIMEOUT_SHORT} || true
+kubectl wait --for=condition=Ready pods -l app=cainjector -n cert-manager --timeout=${KUBECTL_WAIT_TIMEOUT_SHORT} || true
 
 echo -e "${GREEN}✓ cert-manager démarré${NC}"
 
@@ -68,14 +83,14 @@ helm install rancher rancher-latest/rancher \
   --namespace cattle-system \
   --set hostname=${HOSTNAME} \
   --set bootstrapPassword=${BOOTSTRAP_PASSWORD} \
-  --set ingress.tls.source=rancher
+  --set ingress.tls.source=${RANCHER_TLS_SOURCE}
 
 echo -e "${GREEN}✓ Rancher installé${NC}"
 
 echo -e "${YELLOW}[5/5] Exposition de Rancher via LoadBalancer...${NC}"
 
 # Attendre que le deployment soit prêt
-kubectl wait --for=condition=Available deployment/rancher -n cattle-system --timeout=300s || true
+kubectl wait --for=condition=Available deployment/rancher -n cattle-system --timeout=${KUBECTL_WAIT_TIMEOUT} || true
 
 kubectl expose deployment rancher \
   --type=LoadBalancer \

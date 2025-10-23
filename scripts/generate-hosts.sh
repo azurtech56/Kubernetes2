@@ -58,15 +58,45 @@ ff02::2 ip6-allrouters
 # IP Virtuelle (VIP) - keepalived
 ${VIP} ${VIP_FQDN} ${VIP_HOSTNAME}
 
-# Masters
-${MASTER1_IP} ${MASTER1_FQDN} ${MASTER1_HOSTNAME}
-${MASTER2_IP} ${MASTER2_FQDN} ${MASTER2_HOSTNAME}
-${MASTER3_IP} ${MASTER3_FQDN} ${MASTER3_HOSTNAME}
+# Masters (détection automatique)
+EOF
 
-# Workers
-${WORKER1_IP} ${WORKER1_FQDN} ${WORKER1_HOSTNAME}
-${WORKER2_IP} ${WORKER2_FQDN} ${WORKER2_HOSTNAME}
-${WORKER3_IP} ${WORKER3_FQDN} ${WORKER3_HOSTNAME}
+    # Ajouter dynamiquement tous les masters configurés
+    local master_num=1
+    while true; do
+        local ip_var="MASTER${master_num}_IP"
+        local hostname_var="MASTER${master_num}_HOSTNAME"
+        local fqdn_var="MASTER${master_num}_FQDN"
+
+        if [ -n "${!ip_var}" ]; then
+            echo "${!ip_var} ${!fqdn_var} ${!hostname_var}"
+            ((master_num++))
+        else
+            break
+        fi
+    done
+
+    cat <<EOF
+
+# Workers (détection automatique)
+EOF
+
+    # Ajouter dynamiquement tous les workers configurés
+    local worker_num=1
+    while true; do
+        local ip_var="WORKER${worker_num}_IP"
+        local hostname_var="WORKER${worker_num}_HOSTNAME"
+        local fqdn_var="WORKER${worker_num}_FQDN"
+
+        if [ -n "${!ip_var}" ]; then
+            echo "${!ip_var} ${!fqdn_var} ${!hostname_var}"
+            ((worker_num++))
+        else
+            break
+        fi
+    done
+
+    cat <<EOF
 
 # ═══════════════════════════════════════════════════════════════════════════
 EOF
@@ -82,12 +112,42 @@ show_menu() {
     echo -e "${BLUE}Configuration actuelle (config.sh):${NC}"
     echo ""
     echo -e "  ${YELLOW}VIP:${NC}      ${VIP} → ${VIP_FQDN}"
-    echo -e "  ${YELLOW}Master 1:${NC} ${MASTER1_IP} → ${MASTER1_FQDN}"
-    echo -e "  ${YELLOW}Master 2:${NC} ${MASTER2_IP} → ${MASTER2_FQDN}"
-    echo -e "  ${YELLOW}Master 3:${NC} ${MASTER3_IP} → ${MASTER3_FQDN}"
-    echo -e "  ${YELLOW}Worker 1:${NC} ${WORKER1_IP} → ${WORKER1_FQDN}"
-    echo -e "  ${YELLOW}Worker 2:${NC} ${WORKER2_IP} → ${WORKER2_FQDN}"
-    echo -e "  ${YELLOW}Worker 3:${NC} ${WORKER3_IP} → ${WORKER3_FQDN}"
+    echo ""
+    echo -e "  ${YELLOW}Masters:${NC}"
+
+    # Afficher dynamiquement tous les masters
+    local master_num=1
+    while true; do
+        local ip_var="MASTER${master_num}_IP"
+        local hostname_var="MASTER${master_num}_HOSTNAME"
+        local fqdn_var="MASTER${master_num}_FQDN"
+
+        if [ -n "${!ip_var}" ]; then
+            echo -e "    Master ${master_num}: ${!ip_var} → ${!fqdn_var}"
+            ((master_num++))
+        else
+            break
+        fi
+    done
+
+    echo ""
+    echo -e "  ${YELLOW}Workers:${NC}"
+
+    # Afficher dynamiquement tous les workers
+    local worker_num=1
+    while true; do
+        local ip_var="WORKER${worker_num}_IP"
+        local hostname_var="WORKER${worker_num}_HOSTNAME"
+        local fqdn_var="WORKER${worker_num}_FQDN"
+
+        if [ -n "${!ip_var}" ]; then
+            echo -e "    Worker ${worker_num}: ${!ip_var} → ${!fqdn_var}"
+            ((worker_num++))
+        else
+            break
+        fi
+    done
+
     echo ""
     echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
     echo ""
@@ -141,15 +201,38 @@ deploy_all() {
     echo -e "${YELLOW}Déploiement sur tous les nœuds via SSH${NC}"
     echo ""
 
-    # Tableau de tous les nœuds
-    declare -a NODES=(
-        "${MASTER1_IP}:${MASTER1_HOSTNAME}"
-        "${MASTER2_IP}:${MASTER2_HOSTNAME}"
-        "${MASTER3_IP}:${MASTER3_HOSTNAME}"
-        "${WORKER1_IP}:${WORKER1_HOSTNAME}"
-        "${WORKER2_IP}:${WORKER2_HOSTNAME}"
-        "${WORKER3_IP}:${WORKER3_HOSTNAME}"
-    )
+    # Construire dynamiquement le tableau de tous les nœuds
+    declare -a NODES=()
+
+    # Ajouter tous les masters
+    local master_num=1
+    while true; do
+        local ip_var="MASTER${master_num}_IP"
+        local hostname_var="MASTER${master_num}_HOSTNAME"
+
+        if [ -n "${!ip_var}" ]; then
+            NODES+=("${!ip_var}:${!hostname_var}")
+            ((master_num++))
+        else
+            break
+        fi
+    done
+
+    # Ajouter tous les workers
+    local worker_num=1
+    while true; do
+        local ip_var="WORKER${worker_num}_IP"
+        local hostname_var="WORKER${worker_num}_HOSTNAME"
+
+        if [ -n "${!ip_var}" ]; then
+            NODES+=("${!ip_var}:${!hostname_var}")
+            ((worker_num++))
+        else
+            break
+        fi
+    done
+
+    local TOTAL_NODES=${#NODES[@]}
 
     # Demander le nom d'utilisateur SSH
     echo -ne "${YELLOW}Nom d'utilisateur SSH (défaut: root): ${NC}"
@@ -198,8 +281,8 @@ deploy_all() {
 
     echo ""
     echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
-    echo -e "  ${GREEN}Succès:${NC} ${SUCCESS_COUNT}/6 nœuds"
-    echo -e "  ${RED}Échecs:${NC} ${FAILED_COUNT}/6 nœuds"
+    echo -e "  ${GREEN}Succès:${NC} ${SUCCESS_COUNT}/${TOTAL_NODES} nœuds"
+    echo -e "  ${RED}Échecs:${NC} ${FAILED_COUNT}/${TOTAL_NODES} nœuds"
     echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
 
     if [ $FAILED_COUNT -gt 0 ]; then

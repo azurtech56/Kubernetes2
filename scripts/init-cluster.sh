@@ -25,12 +25,28 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
+# Charger la configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/config.sh" ]; then
+    echo -e "${BLUE}Chargement de la configuration depuis config.sh...${NC}"
+    source "$SCRIPT_DIR/config.sh"
+else
+    echo -e "${YELLOW}Avertissement: config.sh non trouvé, utilisation des valeurs par défaut${NC}"
+fi
+
+# Afficher la configuration détectée
+echo ""
+echo -e "${BLUE}Configuration détectée depuis config.sh:${NC}"
+echo "  VIP: ${VIP:-Non défini}"
+echo "  Masters: $(get_master_count 2>/dev/null || echo '3') nœuds"
+echo ""
+
 # Demander confirmation
-echo -e "${RED}ATTENTION: Ce script doit être exécuté UNIQUEMENT sur le premier master (k8s01-1)${NC}"
+echo -e "${RED}ATTENTION: Ce script doit être exécuté UNIQUEMENT sur le premier master${NC}"
 echo -e "${YELLOW}Assurez-vous que:${NC}"
-echo "  1. keepalived est configuré et l'IP virtuelle 192.168.0.200 est active"
-echo "  2. Le fichier kubelet-ha.yaml est présent dans le répertoire courant"
-echo "  3. /etc/hosts contient les entrées pour k8s, k8s01-1, k8s01-2, k8s01-3"
+echo "  1. keepalived est configuré et l'IP virtuelle ${VIP:-192.168.0.200} est active"
+echo "  2. /etc/hosts contient les entrées pour tous les masters"
+echo "  3. common-setup.sh et master-setup.sh ont été exécutés"
 echo ""
 read -p "Continuer? [y/N]: " confirm
 
@@ -39,55 +55,60 @@ if [[ ! $confirm =~ ^[Yy]$ ]]; then
     exit 1
 fi
 
-# Vérifier que le fichier kubelet-ha.yaml existe
-if [ ! -f "kubelet-ha.yaml" ]; then
-    echo -e "${YELLOW}Le fichier kubelet-ha.yaml n'existe pas. Création...${NC}"
+# Générer le fichier kubelet-ha.yaml dynamiquement
+echo -e "${YELLOW}Génération du fichier de configuration kubeadm...${NC}"
 
-    # Détecter l'IP locale du premier master
-    LOCAL_IP=$(hostname -I | awk '{print $1}')
+# Détecter l'IP locale du premier master
+LOCAL_IP=$(hostname -I | awk '{print $1}')
+FIRST_MASTER_HOSTNAME=${MASTER1_HOSTNAME:-$(hostname)}
 
-    cat > kubelet-ha.yaml <<EOF
+# Générer les certSANs dynamiquement pour apiServer
+CERT_SANS_API="    - \"${VIP_HOSTNAME:-k8s}\""
+CERT_SANS_API="${CERT_SANS_API}\n    - \"${VIP:-192.168.0.200}\""
+
+# Ajouter tous les masters détectés
+master_num=1
+while true; do
+    ip_var="MASTER${master_num}_IP"
+    hostname_var="MASTER${master_num}_HOSTNAME"
+
+    if [ -n "${!ip_var}" ]; then
+        CERT_SANS_API="${CERT_SANS_API}\n    - \"${!hostname_var}\""
+        CERT_SANS_API="${CERT_SANS_API}\n    - \"${!ip_var}\""
+        ((master_num++))
+    else
+        break
+    fi
+done
+
+CERT_SANS_API="${CERT_SANS_API}\n    - \"localhost\"\n    - \"127.0.0.1\""
+
+# Générer le fichier de configuration
+cat > kubelet-ha.yaml <<EOF
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: InitConfiguration
 localAPIEndpoint:
   advertiseAddress: "${LOCAL_IP}"
-  bindPort: 6443
+  bindPort: ${API_SERVER_PORT:-6443}
 nodeRegistration:
-  name: "k8s01-1"
+  name: "${FIRST_MASTER_HOSTNAME}"
   criSocket: "/var/run/containerd/containerd.sock"
 ---
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
-kubernetesVersion: "1.32.2"
-controlPlaneEndpoint: "k8s:6443"
+kubernetesVersion: "${K8S_VERSION:-1.32.2}"
+controlPlaneEndpoint: "${VIP_HOSTNAME:-k8s}:${API_SERVER_PORT:-6443}"
 networking:
-  podSubnet: "11.0.0.0/16"
-  serviceSubnet: "10.0.0.0/16"
+  podSubnet: "${POD_SUBNET:-11.0.0.0/16}"
+  serviceSubnet: "${SERVICE_SUBNET:-10.0.0.0/16}"
 apiServer:
   certSANs:
-    - "k8s"
-    - "k8s01-1"
-    - "k8s01-2"
-    - "k8s01-3"
-    - "192.168.0.200"
-    - "192.168.0.201"
-    - "192.168.0.202"
-    - "192.168.0.203"
-    - "localhost"
+$(echo -e "$CERT_SANS_API")
 etcd:
   local:
     dataDir: "/var/lib/etcd"
     certSANs:
-      - "k8s"
-      - "k8s01-1"
-      - "k8s01-2"
-      - "k8s01-3"
-      - "192.168.0.200"
-      - "192.168.0.201"
-      - "192.168.0.202"
-      - "192.168.0.203"
-      - "localhost"
-      - "127.0.0.1"
+$(echo -e "$CERT_SANS_API")
       - "::1"
 controllerManager: {}
 scheduler: {}
@@ -96,8 +117,15 @@ apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
 cgroupDriver: "systemd"
 EOF
-    echo -e "${GREEN}✓ Fichier kubelet-ha.yaml créé${NC}"
-fi
+echo -e "${GREEN}✓ Fichier kubelet-ha.yaml créé${NC}"
+echo ""
+echo -e "${BLUE}Aperçu de la configuration:${NC}"
+echo "  - Hostname: ${FIRST_MASTER_HOSTNAME}"
+echo "  - IP locale: ${LOCAL_IP}"
+echo "  - VIP: ${VIP:-192.168.0.200}"
+echo "  - Kubernetes: ${K8S_VERSION:-1.32.2}"
+echo "  - Masters configurés: $(get_master_count 2>/dev/null || echo '3')"
+echo ""
 
 echo -e "${YELLOW}[1/4] Initialisation de kubeadm...${NC}"
 kubeadm init --config kubelet-ha.yaml --upload-certs | tee kubeadm-init.log
@@ -131,7 +159,7 @@ echo -e "COMMANDES POUR REJOINDRE LE CLUSTER" >> join-commands.txt
 echo -e "${BLUE}========================================${NC}" >> join-commands.txt
 echo "" >> join-commands.txt
 
-echo "# Pour ajouter un MASTER (k8s01-2 ou k8s01-3):" >> join-commands.txt
+echo "# Pour ajouter les AUTRES MASTERS au cluster:" >> join-commands.txt
 grep -A 2 "kubeadm join" kubeadm-init.log | head -n 3 >> join-commands.txt || echo "Commande non trouvée" >> join-commands.txt
 echo "" >> join-commands.txt
 
@@ -155,8 +183,9 @@ echo ""
 echo -e "${BLUE}1. Installer Calico (CNI):${NC}"
 echo "   ./install-calico.sh"
 echo ""
-echo -e "${BLUE}2. Ajouter les autres masters (k8s01-2 et k8s01-3):${NC}"
+echo -e "${BLUE}2. Ajouter les autres masters:${NC}"
 echo "   Voir le fichier join-commands.txt pour les commandes"
+echo "   $(get_master_count 2>/dev/null || echo '3') masters total configurés dans config.sh"
 echo ""
 echo -e "${BLUE}3. Ajouter les workers:${NC}"
 echo "   Voir le fichier join-commands.txt pour les commandes"
