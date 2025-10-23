@@ -30,6 +30,10 @@ Scripts d'installation automatisés pour un cluster Kubernetes 1.32 en haute dis
 
 ## 🏗️ Architecture
 
+### Exemple de configuration
+
+> ℹ️ **Note** : Ceci est un exemple de configuration. Vous pouvez adapter le nombre de workers selon vos besoins en modifiant le fichier [scripts/config.sh](scripts/config.sh).
+
 ```
                     ┌─────────────────┐
                     │   IP Virtuelle  │
@@ -47,18 +51,23 @@ Scripts d'installation automatisés pour un cluster Kubernetes 1.32 en haute dis
         │                    │                    │
         └────────────────────┼────────────────────┘
                              │
-                ┌────────────┴────────────┐
-                │                         │
-           ┌────▼────┐               ┌────▼────┐
-           │ Worker1 │               │ Worker2 │
-           └─────────┘               └─────────┘
+        ┌────────────────────┼────────────────────┐
+        │                    │                    │
+   ┌────▼────┐          ┌────▼────┐          ┌────▼────┐
+   │ Worker1 │          │ Worker2 │          │ Worker3 │
+   │k8s-w-1  │          │k8s-w-2  │          │k8s-w-3  │
+   │.211     │          │.212     │          │.213     │
+   └─────────┘          └─────────┘          └─────────┘
 ```
 
-### Configuration réseau
+### Configuration réseau (exemple)
 - **IP Virtuelle (VIP)**: `192.168.0.200` → `k8s.home.local`
 - **Master 1**: `192.168.0.201` → `k8s01-1.home.local`
 - **Master 2**: `192.168.0.202` → `k8s01-2.home.local`
 - **Master 3**: `192.168.0.203` → `k8s01-3.home.local`
+- **Worker 1**: `192.168.0.211` → `k8s-worker-1.home.local`
+- **Worker 2**: `192.168.0.212` → `k8s-worker-2.home.local`
+- **Worker 3**: `192.168.0.213` → `k8s-worker-3.home.local`
 - **MetalLB Pool**: `192.168.0.210-192.168.0.230`
 
 ## ✅ Prérequis
