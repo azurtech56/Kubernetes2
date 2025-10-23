@@ -88,19 +88,22 @@ show_management_menu() {
     show_header
     echo -e "${BOLD}${BLUE}═══ GESTION DU CLUSTER ═══${NC}"
     echo ""
+    echo -e "${MAGENTA}▶ Configuration${NC}"
+    echo -e "${GREEN}[1]${NC}  Générer /etc/hosts sur les nœuds"
+    echo ""
     echo -e "${MAGENTA}▶ Informations${NC}"
-    echo -e "${GREEN}[1]${NC}  Afficher les nœuds"
-    echo -e "${GREEN}[2]${NC}  Afficher tous les pods"
-    echo -e "${GREEN}[3]${NC}  Afficher les services LoadBalancer"
-    echo -e "${GREEN}[4]${NC}  État du cluster (cluster-info)"
+    echo -e "${GREEN}[2]${NC}  Afficher les nœuds"
+    echo -e "${GREEN}[3]${NC}  Afficher tous les pods"
+    echo -e "${GREEN}[4]${NC}  Afficher les services LoadBalancer"
+    echo -e "${GREEN}[5]${NC}  État du cluster (cluster-info)"
     echo ""
     echo -e "${MAGENTA}▶ Tokens et certificats${NC}"
-    echo -e "${GREEN}[5]${NC}  Générer commande kubeadm join"
-    echo -e "${GREEN}[6]${NC}  Vérifier expiration des certificats"
+    echo -e "${GREEN}[6]${NC}  Générer commande kubeadm join"
+    echo -e "${GREEN}[7]${NC}  Vérifier expiration des certificats"
     echo ""
     echo -e "${MAGENTA}▶ Mots de passe${NC}"
-    echo -e "${GREEN}[7]${NC}  Récupérer mot de passe Grafana"
-    echo -e "${GREEN}[8]${NC}  Récupérer mot de passe Rancher"
+    echo -e "${GREEN}[8]${NC}  Récupérer mot de passe Grafana"
+    echo -e "${GREEN}[9]${NC}  Récupérer mot de passe Rancher"
     echo ""
     echo -e "${RED}[0]${NC}  Retour au menu principal"
     echo ""
@@ -366,38 +369,41 @@ manage_cluster() {
 
         case $choice in
             1)
+                ./generate-hosts.sh
+                ;;
+            2)
                 kubectl get nodes -o wide
                 echo ""
                 read -p "Appuyez sur Entrée pour continuer..."
                 ;;
-            2)
+            3)
                 kubectl get pods -A
                 echo ""
                 read -p "Appuyez sur Entrée pour continuer..."
                 ;;
-            3)
+            4)
                 kubectl get svc -A | grep LoadBalancer
                 echo ""
                 read -p "Appuyez sur Entrée pour continuer..."
                 ;;
-            4)
-                kubectl cluster-info
-                echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
-                ;;
             5)
-                echo ""
-                kubeadm token create --print-join-command
+                kubectl cluster-info
                 echo ""
                 read -p "Appuyez sur Entrée pour continuer..."
                 ;;
             6)
                 echo ""
-                kubeadm certs check-expiration
+                kubeadm token create --print-join-command
                 echo ""
                 read -p "Appuyez sur Entrée pour continuer..."
                 ;;
             7)
+                echo ""
+                kubeadm certs check-expiration
+                echo ""
+                read -p "Appuyez sur Entrée pour continuer..."
+                ;;
+            8)
                 echo ""
                 echo -e "${YELLOW}Mot de passe Grafana:${NC}"
                 kubectl get secret --namespace monitoring prometheus-grafana -o jsonpath="{.data.admin-password}" 2>/dev/null | base64 -d
@@ -405,7 +411,7 @@ manage_cluster() {
                 echo ""
                 read -p "Appuyez sur Entrée pour continuer..."
                 ;;
-            8)
+            9)
                 echo ""
                 echo -e "${YELLOW}Mot de passe Rancher:${NC}"
                 kubectl get secret --namespace cattle-system bootstrap-secret -o jsonpath="{.data.bootstrapPassword}" 2>/dev/null | base64 -d
