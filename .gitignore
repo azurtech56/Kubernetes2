@@ -1,0 +1,31 @@
+# Kubernetes
+*.log
+kubeadm-init.log
+join-commands.txt
+.kube/
+admin.conf
+
+# Generated configs
+metallb-config.yaml
+cadvisor.yaml
+prometheus-values.yaml
+kubelet-ha.yaml
+
+# Helm
+rancher/
+*.tgz
+
+# Temporary files
+*.tmp
+*.bak
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

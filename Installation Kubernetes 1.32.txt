@@ -1,0 +1,582 @@
+================================================================================
+              INSTALLATION KUBERNETES 1.32 - HAUTE DISPONIBILITÉ
+================================================================================
+
+ARCHITECTURE DU CLUSTER
+-----------------------
+IP Virtuelle (VIP):  192.168.0.200  k8s.home.local (k8s)
+Master 1:            192.168.0.201  k8s01-1.home.local (k8s01-1)
+Master 2:            192.168.0.202  k8s01-2.home.local (k8s01-2)
+Master 3:            192.168.0.203  k8s01-3.home.local (k8s01-3)
+
+Plage MetalLB:       192.168.0.210-192.168.0.230
+Interface réseau:    ens33
+
+
+================================================================================
+1. PRÉPARATION DU SYSTÈME (Tous les nœuds)
+================================================================================
+
+1.1 Configuration /etc/hosts
+-----------------------------
+sudo nano /etc/hosts
+
+# Ajouter ces lignes:
+192.168.0.200 k8s.home.local k8s
+192.168.0.201 k8s01-1.home.local k8s01-1
+192.168.0.202 k8s01-2.home.local k8s01-2
+192.168.0.203 k8s01-3.home.local k8s01-3
+
+
+1.2 Désactivation du swap
+--------------------------
+sudo swapoff -a
+sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+
+1.3 Configuration du firewall - Masters
+----------------------------------------
+sudo ufw allow 6443/tcp      # Kubernetes API server
+sudo ufw allow 2379/tcp      # etcd client
+sudo ufw allow 2380/tcp      # etcd peer
+sudo ufw allow 10250/tcp     # Kubelet API
+sudo ufw allow 10251/tcp     # kube-scheduler
+sudo ufw allow 10252/tcp     # kube-controller-manager
+sudo ufw allow 10255/tcp     # Read-only Kubelet API
+sudo ufw allow proto vrrp    # keepalived VRRP
+sudo ufw reload
+
+
+1.4 Configuration du firewall - Workers
+----------------------------------------
+sudo ufw allow 10250/tcp         # Kubelet API
+sudo ufw allow 30000:32767/tcp   # NodePort Services
+sudo ufw reload
+
+
+================================================================================
+2. INSTALLATION CONTAINERD (Tous les nœuds)
+================================================================================
+
+2.1 Chargement des modules kernel
+----------------------------------
+cat <<EOF | sudo tee /etc/modules-load.d/containerd.conf
+overlay
+br_netfilter
+EOF
+
+sudo modprobe overlay
+sudo modprobe br_netfilter
+
+
+2.2 Configuration sysctl
+------------------------
+cat <<EOF | sudo tee /etc/sysctl.d/99-kubernetes-k8s.conf
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+EOF
+
+sudo sysctl --system
+
+
+2.3 Installation de containerd
+-------------------------------
+sudo apt update
+sudo apt -y install containerd
+
+sudo mkdir -p /etc/containerd/
+containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
+
+
+2.4 Configuration systemd cgroup
+---------------------------------
+sudo nano /etc/containerd/config.toml
+
+# Modifier la ligne:
+# SystemdCgroup = false
+# par:
+# SystemdCgroup = true
+
+sudo systemctl restart containerd
+sudo systemctl enable containerd
+
+
+================================================================================
+3. INSTALLATION KUBERNETES (Tous les nœuds)
+================================================================================
+
+3.1 Ajout du repository Kubernetes
+-----------------------------------
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+
+3.2 Installation des composants Kubernetes
+-------------------------------------------
+sudo apt update
+sudo apt install kubelet kubeadm kubectl -y
+sudo apt-mark hold kubelet kubeadm kubectl
+
+
+================================================================================
+4. CONFIGURATION HAUTE DISPONIBILITÉ avec keepalived (Tous les masters)
+================================================================================
+
+4.1 Installation keepalived
+----------------------------
+sudo apt update
+sudo apt install keepalived -y
+
+
+4.2 Configuration keepalived sur k8s01-1 (Master 1 - MASTER)
+-------------------------------------------------------------
+sudo nano /etc/keepalived/keepalived.conf
+
+vrrp_instance VI_1 {
+    state MASTER
+    interface ens33
+    virtual_router_id 51
+    priority 101
+    advert_int 1
+
+    authentication {
+        auth_type PASS
+        auth_pass K8s_HA_Pass
+    }
+
+    virtual_ipaddress {
+        192.168.0.200/24
+    }
+}
+
+sudo systemctl enable keepalived
+sudo systemctl start keepalived
+sudo systemctl status keepalived
+
+
+4.3 Configuration keepalived sur k8s01-2 (Master 2 - BACKUP)
+-------------------------------------------------------------
+sudo nano /etc/keepalived/keepalived.conf
+
+vrrp_instance VI_1 {
+    state BACKUP
+    interface ens33
+    virtual_router_id 51
+    priority 100
+    advert_int 1
+
+    authentication {
+        auth_type PASS
+        auth_pass K8s_HA_Pass
+    }
+
+    virtual_ipaddress {
+        192.168.0.200/24
+    }
+}
+
+sudo systemctl enable keepalived
+sudo systemctl start keepalived
+sudo systemctl status keepalived
+
+
+4.4 Configuration keepalived sur k8s01-3 (Master 3 - BACKUP)
+-------------------------------------------------------------
+sudo nano /etc/keepalived/keepalived.conf
+
+vrrp_instance VI_1 {
+    state BACKUP
+    interface ens33
+    virtual_router_id 51
+    priority 99
+    advert_int 1
+
+    authentication {
+        auth_type PASS
+        auth_pass K8s_HA_Pass
+    }
+
+    virtual_ipaddress {
+        192.168.0.200/24
+    }
+}
+
+sudo systemctl enable keepalived
+sudo systemctl start keepalived
+sudo systemctl status keepalived
+
+
+4.5 Vérification de l'IP virtuelle
+-----------------------------------
+# Sur k8s01-1 (doit avoir l'IP virtuelle)
+ip addr show ens33
+
+# Vous devriez voir:
+# inet 192.168.0.201/24 brd 192.168.0.255 scope global ens33
+# inet 192.168.0.200/24 scope global secondary ens33
+
+# Test de ping
+ping -c 3 192.168.0.200
+
+
+================================================================================
+5. INITIALISATION DU CLUSTER (Sur k8s01-1 uniquement)
+================================================================================
+
+5.1 Création du fichier de configuration
+-----------------------------------------
+nano kubelet-ha.yaml
+
+# Copier le contenu du fichier kubelet-ha.yaml existant
+# avec controlPlaneEndpoint: "k8s:6443"
+
+
+5.2 Initialisation du premier master
+-------------------------------------
+sudo kubeadm init --config kubelet-ha.yaml --upload-certs
+
+# IMPORTANT: Sauvegarder les commandes kubeadm join générées !
+
+
+5.3 Configuration kubectl
+--------------------------
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+export KUBECONFIG=$HOME/.kube/config
+
+
+5.4 Ajout des autres masters (k8s01-2 et k8s01-3)
+--------------------------------------------------
+# Utiliser la commande kubeadm join avec --control-plane générée à l'étape 5.2
+# Exemple:
+sudo kubeadm join k8s:6443 --token <token> \
+    --discovery-token-ca-cert-hash sha256:<hash> \
+    --control-plane \
+    --certificate-key <cert-key>
+
+# Configurer kubectl sur chaque master
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+
+5.5 Ajout des workers
+---------------------
+# Utiliser la commande kubeadm join SANS --control-plane générée à l'étape 5.2
+# Exemple:
+sudo kubeadm join k8s:6443 --token <token> \
+    --discovery-token-ca-cert-hash sha256:<hash>
+
+
+================================================================================
+6. INSTALLATION CALICO (CNI Network Plugin)
+================================================================================
+
+# Option 1: Dernière version stable (recommandé)
+kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+
+# Option 2: Version spécifique (v3.28.0)
+# kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico-vxlan.yaml
+
+# Vérification
+kubectl get pods -n kube-system
+kubectl get nodes
+
+
+================================================================================
+7. INSTALLATION METALLB (Load Balancer)
+================================================================================
+
+7.1 Installation MetalLB
+-------------------------
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/main/config/manifests/metallb-native.yaml
+
+# Attendre que les pods soient prêts
+kubectl wait --namespace metallb-system \
+    --for=condition=ready pod \
+    --selector=app=metallb \
+    --timeout=90s
+
+
+7.2 Configuration MetalLB
+--------------------------
+nano metallb-config.yaml
+
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: external-ips
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.0.210-192.168.0.230
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: external-advertisement
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - external-ips
+  interfaces:
+  - ens33
+
+kubectl apply -f metallb-config.yaml
+
+
+================================================================================
+8. INSTALLATION RANCHER (Interface de gestion Kubernetes)
+================================================================================
+
+8.1 Installation cert-manager
+------------------------------
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.0/cert-manager.yaml
+
+# Vérification
+kubectl get pods --namespace cert-manager
+
+
+8.2 Installation via Helm
+--------------------------
+helm repo add jetstack https://charts.jetstack.io --force-update
+helm install cert-manager jetstack/cert-manager \
+    --namespace cert-manager \
+    --create-namespace \
+    --version v1.17.0 \
+    --set crds.enabled=true
+
+
+8.3 Installation Rancher
+-------------------------
+helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
+helm repo update
+
+kubectl create namespace cattle-system
+
+helm pull rancher-latest/rancher --untar
+cd rancher
+
+# Modifier Chart.yaml si nécessaire
+nano Chart.yaml
+
+helm install rancher . \
+    --namespace cattle-system \
+    --create-namespace \
+    --set hostname=rancher.home.local \
+    --set bootstrapPassword=admin \
+    --set ingress.tls.source=rancher
+
+
+8.4 Récupération du mot de passe
+---------------------------------
+kubectl get secret --namespace cattle-system rancher \
+    --template "{{ .data.bootstrapPassword }}" | base64 -d
+echo
+
+
+8.5 Exposition via LoadBalancer
+--------------------------------
+kubectl expose deployment rancher \
+    --type=LoadBalancer \
+    --name=rancher-lb \
+    --namespace=cattle-system \
+    --port=80 \
+    --target-port=80
+
+kubectl expose deployment rancher \
+    --type=LoadBalancer \
+    --name=rancher-lb-https \
+    --namespace=cattle-system \
+    --port=443 \
+    --target-port=443
+
+
+8.6 Connexion à Rancher
+------------------------
+URL:           https://rancher.home.local
+Identifiant:   admin
+Mot de passe:  azertyuiop12
+
+
+================================================================================
+9. INSTALLATION CADVISOR (Monitoring des conteneurs)
+================================================================================
+
+9.1 Création du namespace
+--------------------------
+kubectl create namespace monitoring
+
+
+9.2 Déploiement cAdvisor
+-------------------------
+nano cAdvisor.yaml
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cadvisor
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      name: cadvisor
+  template:
+    metadata:
+      labels:
+        name: cadvisor
+    spec:
+      containers:
+      - name: cadvisor
+        image: gcr.io/cadvisor/cadvisor:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        volumeMounts:
+        - name: rootfs
+          mountPath: /rootfs
+          readOnly: true
+        - name: var-run
+          mountPath: /var/run
+          readOnly: false
+        - name: sys
+          mountPath: /sys
+          readOnly: true
+        - name: docker
+          mountPath: /var/lib/docker
+          readOnly: true
+      volumes:
+      - name: rootfs
+        hostPath:
+          path: /
+      - name: var-run
+        hostPath:
+          path: /var/run
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: docker
+        hostPath:
+          path: /var/lib/docker
+
+kubectl apply -f cAdvisor.yaml
+
+
+================================================================================
+10. INSTALLATION PROMETHEUS ET GRAFANA (Monitoring & Dashboards)
+================================================================================
+
+10.1 Ajout du repository Helm
+------------------------------
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+
+10.2 Installation de kube-prometheus-stack
+-------------------------------------------
+helm install prometheus prometheus-community/kube-prometheus-stack \
+    --namespace monitoring
+
+
+10.3 Configuration Prometheus pour cAdvisor
+--------------------------------------------
+nano values.yaml
+
+prometheus:
+  additionalScrapeConfigs:
+    - job_name: 'cadvisor'
+      static_configs:
+        - targets: ['cadvisor.monitoring.svc.cluster.local:8080']
+
+helm upgrade prometheus prometheus-community/kube-prometheus-stack \
+    --namespace monitoring \
+    -f values.yaml
+
+
+10.4 Récupération du mot de passe Grafana
+------------------------------------------
+kubectl --namespace monitoring get secrets prometheus-grafana \
+    -o jsonpath="{.data.admin-password}" | base64 -d
+echo
+
+
+10.5 Exposition de Grafana (optionnel)
+---------------------------------------
+kubectl apply -f prometheus-grafana.yaml
+
+
+10.6 Connexion à Grafana
+-------------------------
+Identifiant:   admin
+Mot de passe:  prom-operator
+
+
+================================================================================
+11. VÉRIFICATIONS ET TESTS
+================================================================================
+
+11.1 Vérification des nœuds
+----------------------------
+kubectl get nodes -o wide
+
+
+11.2 Vérification des pods système
+-----------------------------------
+kubectl get pods -n kube-system
+kubectl get pods -n metallb-system
+kubectl get pods -n cattle-system
+kubectl get pods -n monitoring
+
+
+11.3 Test de l'API server via VIP
+----------------------------------
+curl -k https://192.168.0.200:6443/healthz
+
+
+11.4 Test de basculement HA
+----------------------------
+# Arrêter le master principal
+sudo shutdown -h now
+
+# Depuis un autre nœud
+kubectl get nodes
+# Le cluster doit continuer à fonctionner
+
+
+================================================================================
+12. COMMANDES UTILES
+================================================================================
+
+# Vérifier l'état du cluster
+kubectl cluster-info
+
+# Lister tous les pods de tous les namespaces
+kubectl get pods -A
+
+# Vérifier les logs d'un pod
+kubectl logs -n <namespace> <pod-name>
+
+# Décrire un nœud
+kubectl describe node <node-name>
+
+# Vérifier les certificats
+kubeadm certs check-expiration
+
+# Récupérer le token pour joindre un nœud
+kubeadm token create --print-join-command
+
+# Vérifier keepalived
+sudo systemctl status keepalived
+sudo journalctl -u keepalived -f
+ip addr show ens33
+
+# Vérifier les services LoadBalancer
+kubectl get svc -A | grep LoadBalancer
+
+
+================================================================================
+FIN DE L'INSTALLATION
+================================================================================
