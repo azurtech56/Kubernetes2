@@ -11,18 +11,22 @@ Scripts d'installation automatisés pour un cluster Kubernetes 1.32 en haute dis
 
 ## 📋 Table des matières
 
-- [Architecture](#architecture)
-- [Prérequis](#prérequis)
-- [Installation rapide](#installation-rapide)
-- [Installation détaillée](#installation-détaillée)
-- [Composants installés](#composants-installés)
-- [Scripts disponibles](#scripts-disponibles)
-- [Menu interactif](#menu-interactif)
-- [Configuration](#configuration)
-- [Vérification](#vérification)
-- [Troubleshooting](#troubleshooting)
-- [Compatibilité Debian](#compatibilité-debian)
-- [Contribution](#contribution)
+- [🏗️ Architecture](#️-architecture)
+- [✅ Prérequis](#-prérequis)
+- [🚀 Installation rapide](#-installation-rapide)
+- [📦 Installation détaillée](#-installation-détaillée)
+- [🔧 Composants installés](#-composants-installés)
+- [📜 Scripts disponibles](#-scripts-disponibles)
+- [📱 Menu interactif](#-menu-interactif)
+- [⚙️ Configuration](#️-configuration)
+- [✔️ Vérification](#️-vérification)
+- [🔍 Troubleshooting](#-troubleshooting)
+- [🧪 Commandes utiles](#-commandes-utiles)
+- [🐧 Compatibilité Debian](#-compatibilité-debian)
+- [📖 Documentation complémentaire](#-documentation-complémentaire)
+- [🤝 Contribution](#-contribution)
+- [📜 Licence](#-licence)
+- [👤 Auteur](#-auteur)
 
 ## 🏗️ Architecture
 
@@ -83,8 +87,8 @@ Les scripts installeront automatiquement:
 
 ```bash
 # 1. Cloner le repository
-git clone https://github.com/azurtech56/kubernetes-ha-setup.git
-cd kubernetes-ha-setup/scripts
+git clone https://github.com/azurtech56/Kubernetes2.git
+cd Kubernetes2/scripts
 
 # 2. Rendre les scripts exécutables
 chmod +x *.sh
@@ -102,8 +106,8 @@ Le **menu interactif** vous guide à travers toutes les étapes d'installation a
 
 ```bash
 # 1. Cloner le repository
-git clone https://github.com/azurtech56/kubernetes-ha-setup.git
-cd kubernetes-ha-setup/scripts
+git clone https://github.com/azurtech56/Kubernetes2.git
+cd Kubernetes2/scripts
 
 # 2. Rendre les scripts exécutables
 chmod +x *.sh
@@ -261,7 +265,7 @@ Le **menu interactif** `k8s-menu.sh` est l'outil principal pour installer et gé
 ### Lancement
 
 ```bash
-cd kubernetes-ha-setup/scripts
+cd Kubernetes2/scripts
 ./k8s-menu.sh
 ```
 

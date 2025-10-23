@@ -5,7 +5,7 @@ Le menu interactif `k8s-menu.sh` est une interface console complète pour instal
 ## 🚀 Lancement du menu
 
 ```bash
-cd kubernetes-ha-setup/scripts
+cd Kubernetes2/scripts
 ./k8s-menu.sh
 ```
 
@@ -304,7 +304,7 @@ ls -l *.sh
 Le menu doit être lancé **depuis le répertoire scripts/** :
 
 ```bash
-cd kubernetes-ha-setup/scripts
+cd Kubernetes2/scripts
 ./k8s-menu.sh
 ```
 

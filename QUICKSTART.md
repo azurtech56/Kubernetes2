@@ -15,8 +15,8 @@ Guide ultra-rapide pour installer Kubernetes 1.32 HA en 10 minutes !
 Sur votre machine locale :
 
 ```bash
-git clone https://github.com/azurtech56/kubernetes-ha-setup.git
-cd kubernetes-ha-setup
+git clone https://github.com/azurtech56/Kubernetes2.git
+cd Kubernetes2
 ```
 
 ### Étape 2: Copier sur les serveurs (2 min)

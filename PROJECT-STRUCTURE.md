@@ -3,7 +3,7 @@
 ## Vue d'ensemble
 
 ```
-kubernetes-ha-setup/
+Kubernetes2/
 ├── 📚 Documentation
 ├── ⚙️ Configuration
 ├── 🔧 Scripts d'installation
@@ -13,7 +13,7 @@ kubernetes-ha-setup/
 ## 📂 Structure détaillée
 
 ```
-kubernetes-ha-setup/
+Kubernetes2/
 │
 ├── 📚 DOCUMENTATION (à lire en premier)
 │   ├── README.md                          ⭐ Documentation principale complète
@@ -166,7 +166,7 @@ Vous n'avez **pas besoin** de les créer ou modifier manuellement.
 Ces fichiers sont créés **automatiquement** lors de l'installation :
 
 ```
-kubernetes-ha-setup/
+Kubernetes2/
 ├── kubeadm-init.log              # Log de l'initialisation du cluster
 ├── join-commands.txt             # Commandes kubeadm join
 ├── metallb-config.yaml           # Généré par install-metallb.sh
@@ -210,8 +210,8 @@ du -sh .
 
 ```bash
 # 1. Cloner
-git clone https://github.com/azurtech56/kubernetes-ha-setup.git
-cd kubernetes-ha-setup
+git clone https://github.com/azurtech56/Kubernetes2.git
+cd Kubernetes2
 
 # 2. (Optionnel) Personnaliser
 nano scripts/config.sh
