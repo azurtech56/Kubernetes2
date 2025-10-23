@@ -1,6 +1,6 @@
 # Kubernetes 1.32 - Haute Disponibilité (HA)
 
-![Kubernetes](https://img.shields.io/badge/Kubernetes-1.32-blue)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-1.32.2-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%2F22.04%2F24.04-orange)
 ![Debian](https://img.shields.io/badge/Debian-12%2F13-red)

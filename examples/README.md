@@ -8,6 +8,7 @@ Ce dossier contient des **exemples** de fichiers de configuration YAML pour réf
 
 | Fichier | Généré par | Description |
 |---------|------------|-------------|
+| `kubelet-ha.yaml` | `init-cluster.sh` | Configuration cluster Kubernetes HA (kubeadm) |
 | `cAdvisor.yaml` | `install-monitoring.sh` | DaemonSet cAdvisor pour monitoring des conteneurs |
 | `metallb-config.yaml` | `install-metallb.sh` | Configuration MetalLB (IPAddressPool + L2Advertisement) |
 | `values.yaml` | `install-monitoring.sh` | Configuration Prometheus pour scraper cAdvisor |
