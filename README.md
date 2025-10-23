@@ -1,7 +1,7 @@
 # Kubernetes 1.32 - Haute Disponibilité (HA)
 
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-1.32-blue)
-![License](https://img.shields.io/badge/License-Open--Source-green)
+![License](https://img.shields.io/badge/License-MIT-green)
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%2F22.04%2F24.04-orange)
 ![Debian](https://img.shields.io/badge/Debian-12%2F13-red)
 
@@ -544,11 +544,25 @@ Les contributions sont les bienvenues ! N'hésitez pas à:
 4. Push vers la branche (`git push origin feature/amelioration`)
 5. Ouvrir une Pull Request
 
+## 📜 Licence
+
+Ce projet est sous licence **MIT** - voir le fichier [LICENSE](LICENSE) pour plus de détails.
+
+### Ce que vous pouvez faire :
+- ✅ Utiliser commercialement
+- ✅ Modifier le code
+- ✅ Distribuer
+- ✅ Utiliser en privé
+
+### Conditions :
+- 📄 Inclure la licence et le copyright dans vos copies
+- ⚠️ Aucune garantie fournie
+
 ## 👤 Auteur
 
 Créé pour faciliter le déploiement de clusters Kubernetes en haute disponibilité.
 
-**Projet Open Source** - Libre d'utilisation, modification et distribution.
+**Projet Open Source** - Contributeurs bienvenus !
 
 ## ⭐ Remerciements
 
