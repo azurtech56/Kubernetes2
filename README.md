@@ -83,7 +83,7 @@ Les scripts installeront automatiquement:
 
 ```bash
 # 1. Cloner le repository
-git clone https://github.com/votre-user/kubernetes-ha-setup.git
+git clone https://github.com/azurtech56/kubernetes-ha-setup.git
 cd kubernetes-ha-setup/scripts
 
 # 2. Rendre les scripts exécutables
@@ -102,7 +102,7 @@ Le **menu interactif** vous guide à travers toutes les étapes d'installation a
 
 ```bash
 # 1. Cloner le repository
-git clone https://github.com/votre-user/kubernetes-ha-setup.git
+git clone https://github.com/azurtech56/kubernetes-ha-setup.git
 cd kubernetes-ha-setup/scripts
 
 # 2. Rendre les scripts exécutables

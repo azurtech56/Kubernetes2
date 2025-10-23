@@ -62,7 +62,7 @@ kubernetesVersion: "1.32.2"
 controlPlaneEndpoint: "k8s:6443"
 networking:
   podSubnet: "11.0.0.0/16"
-  serviceSubnet: "10.0.0.1/16"
+  serviceSubnet: "10.0.0.0/16"
 apiServer:
   certSANs:
     - "k8s"

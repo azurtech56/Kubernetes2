@@ -1,6 +1,9 @@
 #!/bin/bash
 ################################################################################
 # Fichier de configuration pour Kubernetes HA Setup
+# Compatible avec: Ubuntu 20.04/22.04/24.04 - Debian 12/13
+# Auteur: azurtech56
+# Version: 1.0
 # Modifiez les valeurs ci-dessous selon votre environnement
 ################################################################################
 
@@ -85,7 +88,7 @@ export K8S_VERSION="1.32.2"
 export POD_SUBNET="11.0.0.0/16"
 
 # Subnet pour les services
-export SERVICE_SUBNET="10.0.0.1/16"
+export SERVICE_SUBNET="10.0.0.0/16"
 
 # Port de l'API Server
 export API_SERVER_PORT="6443"
