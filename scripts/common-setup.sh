@@ -45,10 +45,35 @@ swapoff -a
 sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 echo -e "${GREEN}✓ Swap désactivé${NC}"
 
-echo -e "${YELLOW}[2/8] Mise à jour du système...${NC}"
+echo -e "${YELLOW}[2/8] Mise à jour du système et installation des dépendances...${NC}"
 apt update
 apt upgrade -y
-echo -e "${GREEN}✓ Système mis à jour${NC}"
+
+# Installer les outils nécessaires
+echo -e "${BLUE}Installation des dépendances requises...${NC}"
+
+# Détecter si Ubuntu ou Debian pour software-properties
+if grep -q "ubuntu" /etc/os-release 2>/dev/null; then
+    SOFTWARE_PROPERTIES="software-properties-common"
+else
+    # Sur Debian, ce paquet n'existe pas ou n'est pas nécessaire
+    SOFTWARE_PROPERTIES=""
+fi
+
+apt install -y \
+    curl \
+    gnupg \
+    ca-certificates \
+    apt-transport-https \
+    ${SOFTWARE_PROPERTIES} \
+    ufw \
+    iproute2 \
+    openssh-client \
+    net-tools \
+    bash-completion
+
+echo -e "${GREEN}✓ Système mis à jour et dépendances installées${NC}"
+echo -e "${BLUE}  Paquets: curl, gnupg, ufw, iproute2, openssh-client, net-tools${NC}"
 
 echo -e "${YELLOW}[3/8] Chargement des modules kernel...${NC}"
 cat <<EOF | tee /etc/modules-load.d/containerd.conf

@@ -68,7 +68,7 @@ Scripts d'installation automatisés pour un cluster Kubernetes 1.32 en haute dis
 - **Worker 1**: `192.168.0.211` → `k8s-worker-1.home.local`
 - **Worker 2**: `192.168.0.212` → `k8s-worker-2.home.local`
 - **Worker 3**: `192.168.0.213` → `k8s-worker-3.home.local`
-- **MetalLB Pool**: `192.168.0.210-192.168.0.230`
+- **MetalLB Pool**: `192.168.0.220-192.168.0.240` (21 IPs pour services LoadBalancer)
 
 ## ✅ Prérequis
 
@@ -338,8 +338,8 @@ export WORKER3_IP="192.168.0.213"
 export WORKER_COUNT=3
 
 # MetalLB
-export METALLB_IP_START="192.168.0.210"
-export METALLB_IP_END="192.168.0.230"
+export METALLB_IP_START="192.168.0.220"
+export METALLB_IP_END="192.168.0.240"
 
 # Rancher
 export RANCHER_SUBDOMAIN="rancher"  # → rancher.home.local
@@ -387,8 +387,8 @@ Ajoutez ces lignes sur TOUS les nœuds:
 Les scripts utilisent des valeurs par défaut que vous pouvez modifier:
 
 #### MetalLB
-- Plage IP: `192.168.0.210-192.168.0.230`
-- Interface: `ens33`
+- Plage IP: `192.168.0.220-192.168.0.240` (21 IPs, pas de collision avec nœuds)
+- Interface: Détection automatique (ou `ens33` par défaut)
 
 #### Rancher
 - Hostname: `rancher.home.local`
