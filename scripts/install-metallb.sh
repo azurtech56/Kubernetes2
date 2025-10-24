@@ -48,9 +48,15 @@ if [ -f "$SCRIPT_DIR/config.sh" ]; then
 else
     echo -e "${YELLOW}Avertissement: config.sh non trouvé, utilisation des valeurs par défaut${NC}"
     METALLB_IP_RANGE="192.168.0.210-192.168.0.230"
-    NETWORK_INTERFACE="ens33"
+    NETWORK_INTERFACE="auto"
     METALLB_MANIFEST_URL="https://raw.githubusercontent.com/metallb/metallb/main/config/manifests/metallb-native.yaml"
     KUBECTL_WAIT_TIMEOUT_SHORT="90s"
+fi
+
+# Détecter l'interface réseau si configurée en "auto"
+if [ "$NETWORK_INTERFACE" = "auto" ]; then
+    NETWORK_INTERFACE=$(detect_network_interface 2>/dev/null || ip route | grep default | awk '{print $5}' | head -n1)
+    echo -e "${GREEN}✓ Interface réseau détectée automatiquement: ${NETWORK_INTERFACE}${NC}"
 fi
 
 # Configuration par défaut (utilise config.sh)

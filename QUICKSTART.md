@@ -37,6 +37,22 @@ cd scripts
 nano config.sh  # Modifier si nécessaire (IPs, hostnames)
 ```
 
+#### ⚠️ **IMPORTANT - Sécurité**
+
+Avant de déployer en production, **changez obligatoirement** ces mots de passe dans `config.sh` :
+
+```bash
+export VRRP_PASSWORD="VotreMo†DePasseFort123!"     # Keepalived HA
+export RANCHER_PASSWORD="VotrePasswordAdmin456!"    # Interface Rancher
+export GRAFANA_PASSWORD="VotrePasswordGrafana789!"  # Monitoring
+```
+
+**Recommandations :**
+- Utilisez des mots de passe d'au moins 16 caractères
+- Incluez majuscules, minuscules, chiffres et symboles
+- Ne committez JAMAIS ces mots de passe dans Git
+- Pour générer un mot de passe fort : `openssl rand -base64 24`
+
 ### Étape 4: Installation automatique (6 min)
 
 #### Sur 192.168.0.201 (k8s01-1) - Premier Master

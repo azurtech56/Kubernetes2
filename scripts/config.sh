@@ -139,7 +139,9 @@ export METALLB_IP_RANGE="${METALLB_IP_START}-${METALLB_IP_END}"
 # CONFIGURATION KEEPALIVED
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Mot de passe VRRP (8 caractères max recommandé)
+# ⚠️ SÉCURITÉ: Mot de passe VRRP (8 caractères max recommandé)
+# ⚠️ CHANGEZ CE MOT DE PASSE AVANT TOUTE UTILISATION EN PRODUCTION !
+# Pour générer un mot de passe fort: generate_secure_password 8
 export VRRP_PASSWORD="K8s_HA_Pass"
 
 # ID du routeur virtuel (doit être unique sur le réseau)
@@ -181,7 +183,9 @@ export CRI_SOCKET="/var/run/containerd/containerd.sock"
 export RANCHER_SUBDOMAIN="rancher"
 export RANCHER_HOSTNAME="${RANCHER_SUBDOMAIN}.${DOMAIN_NAME}"
 
-# Mot de passe bootstrap Rancher
+# ⚠️ SÉCURITÉ: Mot de passe bootstrap Rancher
+# ⚠️ CHANGEZ CE MOT DE PASSE AVANT TOUTE UTILISATION EN PRODUCTION !
+# Pour générer un mot de passe fort: generate_secure_password 16
 export RANCHER_PASSWORD="admin"
 
 # Source TLS (rancher, letsEncrypt, secret)
@@ -191,7 +195,9 @@ export RANCHER_TLS_SOURCE="rancher"
 # CONFIGURATION MONITORING
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Mot de passe Grafana admin
+# ⚠️ SÉCURITÉ: Mot de passe Grafana admin
+# ⚠️ CHANGEZ CE MOT DE PASSE AVANT TOUTE UTILISATION EN PRODUCTION !
+# Pour générer un mot de passe fort: generate_secure_password 16
 export GRAFANA_PASSWORD="prom-operator"
 
 # Namespace pour le monitoring
@@ -223,15 +229,27 @@ export METALLB_MANIFEST_URL="https://raw.githubusercontent.com/metallb/metallb/m
 # ═══════════════════════════════════════════════════════════════════════════
 # TIMEOUTS KUBECTL
 # ═══════════════════════════════════════════════════════════════════════════
+#
+# Ces timeouts sont utilisés par tous les scripts d'installation pour assurer
+# une cohérence dans l'attente du démarrage des composants Kubernetes.
+# Ajustez ces valeurs si votre environnement est plus lent (machines virtuelles,
+# réseau lent, ou ressources limitées).
 
-# Timeout par défaut pour kubectl wait (composants lents : Calico, Prometheus, etc.)
+# Timeout long pour composants lourds (Calico, Prometheus, Rancher, etc.)
+# Recommandé: 300s (5 min) - Augmentez à 600s (10 min) si environnement lent
 export KUBECTL_WAIT_TIMEOUT="300s"
 
-# Timeout court pour kubectl wait (composants légers : MetalLB, cert-manager, etc.)
+# Timeout court pour composants légers (MetalLB, cert-manager, etc.)
+# Recommandé: 180s (3 min) - Augmentez à 300s (5 min) si environnement lent
 export KUBECTL_WAIT_TIMEOUT_SHORT="180s"
 
-# Timeout très court pour kubectl wait (vérifications rapides)
+# Timeout très court pour vérifications rapides (tests webhook, readiness checks)
+# Recommandé: 90s (1.5 min) - Augmentez à 120s (2 min) si environnement lent
 export KUBECTL_WAIT_TIMEOUT_QUICK="90s"
+
+# Timeout pour les opérations critiques (initialisation cluster, etcd)
+# Recommandé: 600s (10 min) - Peut nécessiter jusqu'à 15 min en environnement très lent
+export KUBECTL_WAIT_TIMEOUT_CRITICAL="600s"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # FONCTIONS UTILITAIRES
@@ -244,6 +262,90 @@ detect_network_interface() {
     fi
     echo "$NETWORK_INTERFACE"
 }
+
+# ═══════════════════════════════════════════════════════════════════════════
+# FONCTIONS DE SÉCURITÉ
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Fonction pour générer un mot de passe sécurisé
+# Usage: generate_secure_password [longueur]
+# Exemple: generate_secure_password 16
+generate_secure_password() {
+    local length="${1:-16}"
+
+    # Vérifier si openssl est disponible
+    if command -v openssl >/dev/null 2>&1; then
+        openssl rand -base64 "$((length * 3 / 4))" | tr -d '\n' | head -c "$length"
+        echo
+    # Fallback sur /dev/urandom si openssl n'est pas disponible
+    elif [ -r /dev/urandom ]; then
+        tr -dc 'A-Za-z0-9!@#$%^&*()_+-=' </dev/urandom | head -c "$length"
+        echo
+    else
+        echo "ERREUR: Impossible de générer un mot de passe sécurisé" >&2
+        echo "Installez openssl ou vérifiez l'accès à /dev/urandom" >&2
+        return 1
+    fi
+}
+
+# Fonction pour vérifier la force d'un mot de passe
+# Usage: check_password_strength "mot_de_passe"
+check_password_strength() {
+    local password="$1"
+    local length=${#password}
+    local score=0
+
+    # Critères de force
+    [ "$length" -ge 8 ] && ((score++))
+    [ "$length" -ge 12 ] && ((score++))
+    [ "$length" -ge 16 ] && ((score++))
+    echo "$password" | grep -q '[a-z]' && ((score++))
+    echo "$password" | grep -q '[A-Z]' && ((score++))
+    echo "$password" | grep -q '[0-9]' && ((score++))
+    echo "$password" | grep -q '[!@#$%^&*()_+=-]' && ((score++))
+
+    # Évaluation
+    if [ "$score" -le 3 ]; then
+        echo "FAIBLE"
+        return 1
+    elif [ "$score" -le 5 ]; then
+        echo "MOYEN"
+        return 0
+    else
+        echo "FORT"
+        return 0
+    fi
+}
+
+# Fonction pour afficher un avertissement de sécurité
+show_security_warning() {
+    echo ""
+    echo "⚠️  ═══════════════════════════════════════════════════════════════════"
+    echo "⚠️  AVERTISSEMENT DE SÉCURITÉ"
+    echo "⚠️  ═══════════════════════════════════════════════════════════════════"
+    echo ""
+    echo "Les mots de passe par défaut suivants sont FAIBLES et doivent être changés:"
+    echo ""
+    echo "  - VRRP_PASSWORD     : $(check_password_strength "$VRRP_PASSWORD")"
+    echo "  - RANCHER_PASSWORD  : $(check_password_strength "$RANCHER_PASSWORD")"
+    echo "  - GRAFANA_PASSWORD  : $(check_password_strength "$GRAFANA_PASSWORD")"
+    echo ""
+    echo "Pour générer des mots de passe sécurisés, utilisez:"
+    echo "  generate_secure_password 8   # Pour VRRP (max 8 caractères)"
+    echo "  generate_secure_password 16  # Pour Rancher et Grafana"
+    echo ""
+    echo "Exemple:"
+    echo "  export VRRP_PASSWORD=\"\$(generate_secure_password 8)\""
+    echo "  export RANCHER_PASSWORD=\"\$(generate_secure_password 16)\""
+    echo "  export GRAFANA_PASSWORD=\"\$(generate_secure_password 16)\""
+    echo ""
+    echo "⚠️  ═══════════════════════════════════════════════════════════════════"
+    echo ""
+}
+
+# ═══════════════════════════════════════════════════════════════════════════
+# FONCTIONS UTILITAIRES DE CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════
 
 # Fonction pour obtenir tous les masters configurés (détection dynamique)
 get_all_masters() {

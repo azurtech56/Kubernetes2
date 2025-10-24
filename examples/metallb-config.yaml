@@ -15,5 +15,8 @@ metadata:
 spec:
   ipAddressPools:
   - external-ips
+  # NOTE: L'interface réseau est détectée automatiquement par install-metallb.sh
+  # Exemples d'interfaces courantes: ens33, ens18, enp0s3, eth0
+  # Pour détecter votre interface: ip route | grep default | awk '{print $5}'
   interfaces:
-  - ens33
+  - ens33  # Remplacez par votre interface détectée
