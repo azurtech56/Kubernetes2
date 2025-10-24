@@ -25,6 +25,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 echo -e "${YELLOW}[1/1] Configuration du firewall pour Worker...${NC}"
+ufw allow 22/tcp            # SSH (IMPORTANT!)
 ufw allow 10250/tcp         # Kubelet API
 ufw allow 30000:32767/tcp   # NodePort Services
 ufw --force enable

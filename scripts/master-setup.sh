@@ -25,6 +25,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 echo -e "${YELLOW}[1/3] Configuration du firewall pour Master...${NC}"
+ufw allow 22/tcp        # SSH (IMPORTANT!)
 ufw allow 6443/tcp      # Kubernetes API server
 ufw allow 2379/tcp      # etcd client
 ufw allow 2380/tcp      # etcd peer
