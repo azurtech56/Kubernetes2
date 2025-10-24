@@ -51,12 +51,21 @@ apt upgrade -y
 
 # Installer les outils nécessaires
 echo -e "${BLUE}Installation des dépendances requises...${NC}"
+
+# Détecter si Ubuntu ou Debian pour software-properties
+if grep -q "ubuntu" /etc/os-release 2>/dev/null; then
+    SOFTWARE_PROPERTIES="software-properties-common"
+else
+    # Sur Debian, ce paquet n'existe pas ou n'est pas nécessaire
+    SOFTWARE_PROPERTIES=""
+fi
+
 apt install -y \
     curl \
     gnupg \
     ca-certificates \
     apt-transport-https \
-    software-properties-common \
+    ${SOFTWARE_PROPERTIES} \
     ufw \
     iproute2 \
     openssh-client \
