@@ -144,18 +144,19 @@ ip route | grep default
 ### ⚖️ MetalLB
 
 ```bash
-export METALLB_IP_START="192.168.0.210"
-export METALLB_IP_END="192.168.0.230"
+export METALLB_IP_START="192.168.0.220"
+export METALLB_IP_END="192.168.0.240"
 ```
 
 **Règles** :
 - La plage doit être sur le même subnet que le cluster
-- Ne doit PAS chevaucher avec les IPs des nœuds
+- Ne doit PAS chevaucher avec les IPs des nœuds (.200-.213)
 - Nombre d'IPs = nombre de services LoadBalancer maximum
 
 **Exemple** :
-- Plage `192.168.0.210-192.168.0.230` = 21 IPs disponibles
+- Plage `192.168.0.220-192.168.0.240` = 21 IPs disponibles
 - Peut créer jusqu'à 21 services LoadBalancer
+- Évite les collisions avec VIP (.200), Masters (.201-.203), Workers (.211-.213)
 
 ### 🔐 Keepalived
 

@@ -73,19 +73,19 @@ export MASTER2_PRIORITY="100"
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Worker 1
-export WORKER1_IP="192.168.0.203"
+export WORKER1_IP="192.168.0.211"
 export WORKER1_HOSTNAME="k8s-worker-1"
 export WORKER1_FQDN="${WORKER1_HOSTNAME}.${DOMAIN_NAME}"
 
 # Worker 2
-export WORKER2_IP="192.168.0.204"
+export WORKER2_IP="192.168.0.212"
 export WORKER2_HOSTNAME="k8s-worker-2"
 export WORKER2_FQDN="${WORKER2_HOSTNAME}.${DOMAIN_NAME}"
 
 # Worker 3
-#export WORKER3_IP="192.168.0.213"
-#export WORKER3_HOSTNAME="k8s-worker-3"
-#export WORKER3_FQDN="${WORKER3_HOSTNAME}.${DOMAIN_NAME}"
+export WORKER3_IP="192.168.0.213"
+export WORKER3_HOSTNAME="k8s-worker-3"
+export WORKER3_FQDN="${WORKER3_HOSTNAME}.${DOMAIN_NAME}"
 
 # Pour ajouter un 4ème worker, décommentez les lignes ci-dessous :
 # export WORKER4_IP="192.168.0.214"
@@ -131,8 +131,10 @@ export NETWORK_INTERFACE="${NETWORK_INTERFACE:-auto}"
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Plage d'adresses IP pour MetalLB Load Balancer
-export METALLB_IP_START="192.168.0.210"
-export METALLB_IP_END="192.168.0.230"
+# ⚠️ IMPORTANT: Cette plage NE DOIT PAS chevaucher les IPs des nœuds (.200-.213)
+# Plage disponible recommandée: .220-.240 (21 IPs pour les services LoadBalancer)
+export METALLB_IP_START="192.168.0.220"
+export METALLB_IP_END="192.168.0.240"
 export METALLB_IP_RANGE="${METALLB_IP_START}-${METALLB_IP_END}"
 
 # ═══════════════════════════════════════════════════════════════════════════

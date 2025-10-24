@@ -223,7 +223,7 @@ show_architecture() {
     echo "  • Master 1: 192.168.0.201 → k8s01-1.home.local"
     echo "  • Master 2: 192.168.0.202 → k8s01-2.home.local"
     echo "  • Master 3: 192.168.0.203 → k8s01-3.home.local"
-    echo "  • MetalLB Pool: 192.168.0.210-192.168.0.230"
+    echo "  • MetalLB Pool: 192.168.0.220-192.168.0.240 (21 IPs)"
     echo ""
     read -p "Appuyez sur Entrée pour continuer..."
 }
