@@ -36,7 +36,12 @@ sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 
 1.3 Configuration du firewall - Masters
 ----------------------------------------
+# Ports ouverts dès le setup initial pour simplifier les installations futures
 sudo ufw allow 22/tcp        # SSH (IMPORTANT!)
+sudo ufw allow 80/tcp        # HTTP (LoadBalancer services)
+sudo ufw allow 443/tcp       # HTTPS (LoadBalancer services)
+sudo ufw allow 9090/tcp      # Prometheus (monitoring)
+sudo ufw allow 9093/tcp      # Alertmanager (monitoring)
 sudo ufw allow 6443/tcp      # Kubernetes API server
 sudo ufw allow 2379/tcp      # etcd client
 sudo ufw allow 2380/tcp      # etcd peer
@@ -45,14 +50,25 @@ sudo ufw allow 10251/tcp     # kube-scheduler
 sudo ufw allow 10252/tcp     # kube-controller-manager
 sudo ufw allow 10255/tcp     # Read-only Kubelet API
 sudo ufw allow from any to any proto vrrp    # keepalived VRRP
+sudo ufw allow from 11.0.0.0/16              # Calico pod network
+sudo ufw allow to 11.0.0.0/16                # Calico pod network
+sudo ufw allow from 192.168.0.0/24           # Communication inter-nœuds (IMPORTANT!)
 sudo ufw reload
 
 
 1.4 Configuration du firewall - Workers
 ----------------------------------------
+# Ports ouverts dès le setup initial pour simplifier les installations futures
 sudo ufw allow 22/tcp            # SSH (IMPORTANT!)
+sudo ufw allow 80/tcp            # HTTP (LoadBalancer services)
+sudo ufw allow 443/tcp           # HTTPS (LoadBalancer services)
+sudo ufw allow 9090/tcp          # Prometheus (monitoring)
+sudo ufw allow 9093/tcp          # Alertmanager (monitoring)
 sudo ufw allow 10250/tcp         # Kubelet API
 sudo ufw allow 30000:32767/tcp   # NodePort Services
+sudo ufw allow from 11.0.0.0/16  # Calico pod network
+sudo ufw allow to 11.0.0.0/16    # Calico pod network
+sudo ufw allow from 192.168.0.0/24  # Communication inter-nœuds (IMPORTANT!)
 sudo ufw reload
 
 

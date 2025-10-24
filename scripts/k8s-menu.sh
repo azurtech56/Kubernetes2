@@ -19,10 +19,10 @@ BOLD='\033[1m'
 # Fonction pour afficher le titre
 show_header() {
     clear
-    echo -e "${CYAN}╔════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║${NC}  ${BOLD}${GREEN}Kubernetes 1.32 - Haute Disponibilité (HA)${NC}                ${CYAN}║${NC}"
-    echo -e "${CYAN}║${NC}  ${BOLD}Menu d'installation et de gestion${NC}                          ${CYAN}║${NC}"
-    echo -e "${CYAN}╚════════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║${NC}  ${BOLD}${GREEN}Kubernetes 1.32 - Haute Disponibilité (HA)${NC}              ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}  ${BOLD}Menu d'installation et de gestion${NC}                        ${CYAN}║${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 }
 
@@ -40,7 +40,7 @@ show_main_menu() {
     echo ""
     echo -e "${RED}[0]${NC}  Quitter"
     echo ""
-    echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
     echo -ne "${YELLOW}Votre choix: ${NC}"
 }
 
@@ -63,7 +63,7 @@ show_step_menu() {
     echo ""
     echo -e "${RED}[0]${NC}  Retour au menu principal"
     echo ""
-    echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
     echo -ne "${YELLOW}Votre choix: ${NC}"
 }
 
@@ -79,7 +79,7 @@ show_addons_menu() {
     echo ""
     echo -e "${RED}[0]${NC}  Retour au menu principal"
     echo ""
-    echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
     echo -ne "${YELLOW}Votre choix: ${NC}"
 }
 
@@ -107,7 +107,7 @@ show_management_menu() {
     echo ""
     echo -e "${RED}[0]${NC}  Retour au menu principal"
     echo ""
-    echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
     echo -ne "${YELLOW}Votre choix: ${NC}"
 }
 
@@ -126,7 +126,7 @@ show_diagnostic_menu() {
     echo ""
     echo -e "${RED}[0]${NC}  Retour au menu principal"
     echo ""
-    echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
     echo -ne "${YELLOW}Votre choix: ${NC}"
 }
 
@@ -143,7 +143,7 @@ show_help_menu() {
     echo ""
     echo -e "${RED}[0]${NC}  Retour au menu principal"
     echo ""
-    echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
     echo -ne "${YELLOW}Votre choix: ${NC}"
 }
 
@@ -152,14 +152,14 @@ run_script() {
     local script=$1
     echo ""
     echo -e "${YELLOW}Exécution de ${script}...${NC}"
-    echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
 
     if [ -f "$script" ]; then
         chmod +x "$script"
         sudo "$script"
         local exit_code=$?
         echo ""
-        echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+        echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
         if [ $exit_code -eq 0 ]; then
             echo -e "${GREEN}✓ Script exécuté avec succès${NC}"
         else
@@ -178,14 +178,14 @@ run_script_no_sudo() {
     local script=$1
     echo ""
     echo -e "${YELLOW}Exécution de ${script}...${NC}"
-    echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
 
     if [ -f "$script" ]; then
         chmod +x "$script"
         "$script"
         local exit_code=$?
         echo ""
-        echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"
+        echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
         if [ $exit_code -eq 0 ]; then
             echo -e "${GREEN}✓ Script exécuté avec succès${NC}"
         else
@@ -298,9 +298,9 @@ installation_wizard() {
                 run_script_no_sudo "./install-calico.sh"
 
                 echo ""
-                echo -e "${GREEN}════════════════════════════════════════════════════════════════${NC}"
+                echo -e "${GREEN}══════════════════════════════════════════════════════════════${NC}"
                 echo -e "${GREEN}Installation du premier master terminée!${NC}"
-                echo -e "${GREEN}════════════════════════════════════════════════════════════════${NC}"
+                echo -e "${GREEN}══════════════════════════════════════════════════════════════${NC}"
                 echo ""
                 echo -e "${YELLOW}Prochaines étapes:${NC}"
                 echo "  1. Installer les autres masters avec ce menu (option 2)"

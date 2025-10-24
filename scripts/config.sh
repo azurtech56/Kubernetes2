@@ -19,6 +19,13 @@ export VIP="192.168.0.200"
 export VIP_HOSTNAME="k8s"
 export VIP_FQDN="${VIP_HOSTNAME}.${DOMAIN_NAME}"
 
+# Réseau des nœuds du cluster (utilisé pour UFW)
+# ⚠️ IMPORTANT: Doit inclure tous les nœuds masters et workers
+export CLUSTER_NODES_NETWORK="192.168.0.0/24"
+
+# Réseau des pods (Calico)
+export POD_NETWORK="11.0.0.0/16"
+
 # ═══════════════════════════════════════════════════════════════════════════
 # MASTERS - Configuration flexible
 # ═══════════════════════════════════════════════════════════════════════════

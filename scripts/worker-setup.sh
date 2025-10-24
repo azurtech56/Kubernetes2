@@ -24,10 +24,29 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
+# Charger la configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/config.sh" ]; then
+    source "$SCRIPT_DIR/config.sh"
+else
+    # Valeurs par défaut si config.sh n'existe pas
+    CLUSTER_NODES_NETWORK="192.168.0.0/24"
+    POD_NETWORK="11.0.0.0/16"
+fi
+
 echo -e "${YELLOW}[1/1] Configuration du firewall pour Worker...${NC}"
+echo "  Réseau nœuds: ${CLUSTER_NODES_NETWORK}"
+echo "  Réseau pods: ${POD_NETWORK}"
 ufw allow 22/tcp            # SSH (IMPORTANT!)
+ufw allow 80/tcp            # HTTP (LoadBalancer - Rancher, Grafana)
+ufw allow 443/tcp           # HTTPS (LoadBalancer - Rancher, Grafana)
+ufw allow 9090/tcp          # Prometheus
+ufw allow 9093/tcp          # Alertmanager
 ufw allow 10250/tcp         # Kubelet API
 ufw allow 30000:32767/tcp   # NodePort Services
+ufw allow from ${POD_NETWORK}  # Calico pod network
+ufw allow to ${POD_NETWORK}    # Calico pod network
+ufw allow from ${CLUSTER_NODES_NETWORK}  # Communication inter-nœuds
 ufw --force enable
 ufw reload
 echo -e "${GREEN}✓ Firewall configuré pour Worker${NC}"

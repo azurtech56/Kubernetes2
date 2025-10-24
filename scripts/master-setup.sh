@@ -24,8 +24,24 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
+# Charger la configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/config.sh" ]; then
+    source "$SCRIPT_DIR/config.sh"
+else
+    # Valeurs par défaut si config.sh n'existe pas
+    CLUSTER_NODES_NETWORK="192.168.0.0/24"
+    POD_NETWORK="11.0.0.0/16"
+fi
+
 echo -e "${YELLOW}[1/3] Configuration du firewall pour Master...${NC}"
+echo "  Réseau nœuds: ${CLUSTER_NODES_NETWORK}"
+echo "  Réseau pods: ${POD_NETWORK}"
 ufw allow 22/tcp        # SSH (IMPORTANT!)
+ufw allow 80/tcp        # HTTP (LoadBalancer - Rancher, Grafana)
+ufw allow 443/tcp       # HTTPS (LoadBalancer - Rancher, Grafana)
+ufw allow 9090/tcp      # Prometheus
+ufw allow 9093/tcp      # Alertmanager
 ufw allow 6443/tcp      # Kubernetes API server
 ufw allow 2379/tcp      # etcd client
 ufw allow 2380/tcp      # etcd peer
@@ -34,6 +50,9 @@ ufw allow 10251/tcp     # kube-scheduler
 ufw allow 10252/tcp     # kube-controller-manager
 ufw allow 10255/tcp     # Read-only Kubelet API
 ufw allow from any to any proto vrrp    # keepalived VRRP
+ufw allow from ${POD_NETWORK}  # Calico pod network
+ufw allow to ${POD_NETWORK}    # Calico pod network
+ufw allow from ${CLUSTER_NODES_NETWORK}  # Communication inter-nœuds
 ufw --force enable
 ufw reload
 echo -e "${GREEN}✓ Firewall configuré pour Master${NC}"

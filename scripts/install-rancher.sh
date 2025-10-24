@@ -205,7 +205,7 @@ helm install rancher rancher-latest/rancher \
 
 echo -e "${GREEN}✓ Rancher installé${NC}"
 
-echo -e "${YELLOW}[5/5] Attente du démarrage de Rancher...${NC}"
+echo -e "${YELLOW}[5/6] Attente du démarrage de Rancher...${NC}"
 
 # Attendre que le deployment soit prêt
 kubectl wait --for=condition=Available deployment/rancher -n cattle-system --timeout=${KUBECTL_WAIT_TIMEOUT} || true
