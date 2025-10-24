@@ -19,6 +19,27 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  Installation de Calico CNI${NC}"
 echo -e "${GREEN}========================================${NC}"
 
+# Vérifier et configurer kubectl
+echo -e "${BLUE}Vérification de la configuration kubectl...${NC}"
+if [ ! -f "$HOME/.kube/config" ]; then
+    echo -e "${YELLOW}Configuration kubectl non trouvée, tentative de copie depuis /etc/kubernetes/admin.conf...${NC}"
+    mkdir -p $HOME/.kube
+    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    sudo chown $(id -u):$(id -g) $HOME/.kube/config
+    echo -e "${GREEN}✓ Configuration kubectl copiée${NC}"
+else
+    echo -e "${GREEN}✓ Configuration kubectl trouvée${NC}"
+fi
+
+# Vérifier que kubectl fonctionne
+if ! kubectl cluster-info &>/dev/null; then
+    echo -e "${RED}Erreur: kubectl ne peut pas se connecter au cluster${NC}"
+    echo -e "${YELLOW}Vérifiez que vous êtes sur un nœud master et que le cluster est démarré${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ Connexion au cluster réussie${NC}"
+echo ""
+
 # Charger la configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$SCRIPT_DIR/config.sh" ]; then
