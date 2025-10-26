@@ -1,0 +1,27 @@
+# Fichiers de configuration contenant des secrets
+.env
+.env.local
+.env.*.local
+
+# Backups contenant potentiellement des secrets
+backups/
+*.backup
+*.bak
+
+# Logs contenant potentiellement des informations sensibles
+logs/
+*.log
+
+# Certificats et clés
+*.key
+*.crt
+*.pem
+*.p12
+*.pfx
+
+# Configurations keepalived (contient VRRP_PASSWORD)
+keepalived.conf.backup
+
+# État des installations
+/var/lib/k8s-setup/
+installation-state.json
