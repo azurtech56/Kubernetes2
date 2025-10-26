@@ -16,11 +16,26 @@ MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 BOLD='\033[1m'
 
+# Charger la configuration globalement une seule fois
+if [ -f "./config.sh" ]; then
+    source "./config.sh"
+    K8S_DISPLAY_VERSION="${K8S_VERSION:-1.32}"
+else
+    K8S_DISPLAY_VERSION="1.32"
+fi
+
 # Fonction pour afficher le titre
 show_header() {
     clear
+
+    # Calculer les espaces nécessaires pour l'alignement (62 caractères au total)
+    local title="Kubernetes ${K8S_DISPLAY_VERSION} - Haute Disponibilité (HA)"
+    local title_length=${#title}
+    local padding_needed=$((62 - title_length - 2))  # -2 pour les espaces au début
+    local padding=$(printf '%*s' "$padding_needed" '')
+
     echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║${NC}  ${BOLD}${GREEN}Kubernetes 1.32 - Haute Disponibilité (HA)${NC}              ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}  ${BOLD}${GREEN}${title}${NC}${padding}${CYAN}║${NC}"
     echo -e "${CYAN}║${NC}  ${BOLD}Menu d'installation et de gestion${NC}                        ${CYAN}║${NC}"
     echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
@@ -209,22 +224,8 @@ run_script_no_sudo() {
 show_architecture() {
     show_header
 
-    # Charger la configuration
-    if [ -f "./config.sh" ]; then
-        source "./config.sh"
-    else
-        VIP="192.168.0.200"
-        VIP_HOSTNAME="k8s"
-        DOMAIN_NAME="home.local"
-        MASTER1_IP="192.168.0.201"
-        MASTER1_HOSTNAME="k8s01-1"
-        MASTER2_IP="192.168.0.202"
-        MASTER2_HOSTNAME="k8s01-2"
-        MASTER3_IP="192.168.0.203"
-        MASTER3_HOSTNAME="k8s01-3"
-        METALLB_IP_START="192.168.0.220"
-        METALLB_IP_END="192.168.0.240"
-    fi
+    # La configuration est déjà chargée globalement
+    # Pas besoin de re-charger config.sh
 
     echo -e "${BOLD}${BLUE}═══ ARCHITECTURE DU CLUSTER ═══${NC}"
     echo ""
@@ -233,14 +234,61 @@ show_architecture() {
     echo "                    │  ${VIP}  │"
     echo "                    │    (${VIP_HOSTNAME})      │"
     echo "                    └────────┬────────┘"
+    echo "                             │ (keepalived)"
     echo "                             │"
-    echo "        ┌────────────────────┼────────────────────┐"
-    echo "        │                    │                    │"
-    echo "   ┌────▼────┐          ┌────▼────┐          ┌────▼────┐"
-    echo "   │ Master1 │          │ Master2 │          │ Master3 │"
-    echo "   │${MASTER1_HOSTNAME}  │          │${MASTER2_HOSTNAME}  │          │${MASTER3_HOSTNAME}  │"
-    echo "   │.${MASTER1_IP##*.}     │          │.${MASTER2_IP##*.}     │          │.${MASTER3_IP##*.}     │"
-    echo "   └─────────┘          └─────────┘          └─────────┘"
+
+    # Compter le nombre de masters pour afficher le diagramme
+    local total_masters=0
+    local temp_num=1
+    while true; do
+        local ip_var="MASTER${temp_num}_IP"
+        if [ -n "${!ip_var}" ]; then
+            ((total_masters++))
+            ((temp_num++))
+        else
+            break
+        fi
+    done
+
+    # Affichage dynamique en fonction du nombre de masters
+    if [ $total_masters -eq 1 ]; then
+        echo "                        ┌────▼────┐"
+        echo "                        │ Master1 │"
+        echo "                        │${MASTER1_HOSTNAME} │"
+        echo "                        │.${MASTER1_IP##*.}    │"
+        echo "                        └─────────┘"
+    elif [ $total_masters -eq 2 ]; then
+        echo "                ┌───────────────┴───────────────┐"
+        echo "           ┌────▼────┐                    ┌────▼────┐"
+        echo "           │ Master1 │                    │ Master2 │"
+        echo "           │${MASTER1_HOSTNAME}  │                    │${MASTER2_HOSTNAME}  │"
+        echo "           │.${MASTER1_IP##*.}     │                    │.${MASTER2_IP##*.}     │"
+        echo "           └─────────┘                    └─────────┘"
+    elif [ $total_masters -eq 3 ]; then
+        echo "        ┌────────────────────┼────────────────────┐"
+        echo "        │                    │                    │"
+        echo "   ┌────▼────┐          ┌────▼────┐          ┌────▼────┐"
+        echo "   │ Master1 │          │ Master2 │          │ Master3 │"
+        echo "   │${MASTER1_HOSTNAME}  │          │${MASTER2_HOSTNAME}  │          │${MASTER3_HOSTNAME}  │"
+        echo "   │.${MASTER1_IP##*.}     │          │.${MASTER2_IP##*.}     │          │.${MASTER3_IP##*.}     │"
+        echo "   └─────────┘          └─────────┘          └─────────┘"
+    else
+        # Plus de 3 masters: affichage en liste
+        echo "                        ┌───────────┐"
+        local m_num=1
+        while true; do
+            local ip_var="MASTER${m_num}_IP"
+            local hostname_var="MASTER${m_num}_HOSTNAME"
+            if [ -n "${!ip_var}" ]; then
+                echo "                        │ Master${m_num}  │"
+                echo "                        │ ${!hostname_var} │"
+                ((m_num++))
+            else
+                break
+            fi
+        done
+        echo "                        └───────────┘"
+    fi
     echo ""
     echo -e "${YELLOW}Configuration réseau:${NC}"
     echo "  • IP Virtuelle (VIP): ${VIP} → ${VIP_HOSTNAME}.${DOMAIN_NAME}"
@@ -285,22 +333,64 @@ show_architecture() {
 # Fonction pour afficher l'ordre d'installation
 show_installation_order() {
     show_header
+
+    # La configuration est déjà chargée globalement
+
     echo -e "${BOLD}${BLUE}═══ ORDRE D'INSTALLATION RECOMMANDÉ ═══${NC}"
     echo ""
     echo -e "${YELLOW}1. Sur TOUS les nœuds (masters et workers):${NC}"
     echo "   → common-setup.sh"
     echo ""
-    echo -e "${YELLOW}2. Sur TOUS les masters (k8s01-1, k8s01-2, k8s01-3):${NC}"
+
+    # Affichage dynamique des masters
+    local master_list=""
+    local master_num=1
+    while true; do
+        local hostname_var="MASTER${master_num}_HOSTNAME"
+        if [ -n "${!hostname_var}" ]; then
+            if [ -z "$master_list" ]; then
+                master_list="${!hostname_var}"
+            else
+                master_list="${master_list}, ${!hostname_var}"
+            fi
+            ((master_num++))
+        else
+            break
+        fi
+    done
+
+    echo -e "${YELLOW}2. Sur TOUS les masters (${master_list}):${NC}"
     echo "   → master-setup.sh"
     echo "   → setup-keepalived.sh (choisir le bon rôle)"
     echo ""
-    echo -e "${YELLOW}3. Sur le PREMIER master UNIQUEMENT (k8s01-1):${NC}"
+    echo -e "${YELLOW}3. Sur le PREMIER master UNIQUEMENT (${MASTER1_HOSTNAME:-master1}):${NC}"
     echo "   → init-cluster.sh"
     echo "   → install-calico.sh"
     echo ""
-    echo -e "${YELLOW}4. Sur les autres masters (k8s01-2 et k8s01-3):${NC}"
-    echo "   → Utiliser la commande kubeadm join --control-plane"
-    echo ""
+
+    # Afficher les autres masters s'il y en a
+    local other_masters=""
+    master_num=2
+    while true; do
+        local hostname_var="MASTER${master_num}_HOSTNAME"
+        if [ -n "${!hostname_var}" ]; then
+            if [ -z "$other_masters" ]; then
+                other_masters="${!hostname_var}"
+            else
+                other_masters="${other_masters} et ${!hostname_var}"
+            fi
+            ((master_num++))
+        else
+            break
+        fi
+    done
+
+    if [ -n "$other_masters" ]; then
+        echo -e "${YELLOW}4. Sur les autres masters (${other_masters}):${NC}"
+        echo "   → Utiliser la commande kubeadm join --control-plane"
+        echo ""
+    fi
+
     echo -e "${YELLOW}5. Sur TOUS les workers:${NC}"
     echo "   → worker-setup.sh"
     echo "   → Utiliser la commande kubeadm join (sans --control-plane)"
@@ -316,13 +406,39 @@ show_installation_order() {
 # Assistant d'installation
 installation_wizard() {
     show_header
+
+    # La configuration est déjà chargée globalement
+
     echo -e "${BOLD}${BLUE}═══ ASSISTANT D'INSTALLATION ═══${NC}"
     echo ""
     echo -e "${YELLOW}Cet assistant vous guidera dans l'installation complète.${NC}"
     echo ""
     echo -e "${BLUE}Quel est le rôle de ce nœud?${NC}"
-    echo -e "${GREEN}[1]${NC}  Premier Master (k8s01-1)"
-    echo -e "${GREEN}[2]${NC}  Master secondaire (k8s01-2 ou k8s01-3)"
+    echo -e "${GREEN}[1]${NC}  Premier Master (${MASTER1_HOSTNAME:-master1})"
+
+    # Construire la liste des masters secondaires
+    local secondary_masters=""
+    local master_num=2
+    while true; do
+        local hostname_var="MASTER${master_num}_HOSTNAME"
+        if [ -n "${!hostname_var}" ]; then
+            if [ -z "$secondary_masters" ]; then
+                secondary_masters="${!hostname_var}"
+            else
+                secondary_masters="${secondary_masters} ou ${!hostname_var}"
+            fi
+            ((master_num++))
+        else
+            break
+        fi
+    done
+
+    if [ -n "$secondary_masters" ]; then
+        echo -e "${GREEN}[2]${NC}  Master secondaire (${secondary_masters})"
+    else
+        echo -e "${GREEN}[2]${NC}  Master secondaire"
+    fi
+
     echo -e "${GREEN}[3]${NC}  Worker"
     echo -e "${RED}[0]${NC}  Annuler"
     echo ""
@@ -333,7 +449,7 @@ installation_wizard() {
         1)
             # Premier master
             show_header
-            echo -e "${BOLD}${GREEN}Installation du Premier Master (k8s01-1)${NC}"
+            echo -e "${BOLD}${GREEN}Installation du Premier Master (${MASTER1_HOSTNAME:-master1})${NC}"
             echo ""
             echo -e "${YELLOW}Étapes à effectuer:${NC}"
             echo "  1. Configuration commune"
@@ -501,10 +617,12 @@ run_diagnostics() {
                 watch -n 2 -c "kubectl get pods -n kube-system"
                 ;;
             2)
+                # La configuration est déjà chargée globalement
+                VIP_TO_CHECK="${VIP:-192.168.0.200}"
                 echo ""
                 echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
                 echo ""
-                watch -n 2 "echo -e '${GREEN}=== État keepalived ===${NC}' && systemctl status keepalived --no-pager | head -15 && echo '' && echo -e '${GREEN}=== IP Virtuelle ===${NC}' && ip addr | grep -A2 '192.168.0.200'"
+                watch -n 2 "echo -e '${GREEN}=== État keepalived ===${NC}' && systemctl status keepalived --no-pager | head -15 && echo '' && echo -e '${GREEN}=== IP Virtuelle ===${NC}' && ip addr | grep -A2 '${VIP_TO_CHECK}'"
                 ;;
             3)
                 echo ""
@@ -628,16 +746,18 @@ help_menu() {
                 ;;
             5)
                 show_header
+
+                # La configuration est déjà chargée globalement
                 echo -e "${BOLD}${BLUE}═══ À PROPOS ═══${NC}"
                 echo ""
-                echo -e "${GREEN}Kubernetes 1.32 - Haute Disponibilité${NC}"
+                echo -e "${GREEN}Kubernetes ${K8S_DISPLAY_VERSION} - Haute Disponibilité${NC}"
                 echo "Version: 1.0"
                 echo ""
                 echo "Scripts d'installation automatisés pour un cluster"
                 echo "Kubernetes en haute disponibilité avec keepalived."
                 echo ""
                 echo -e "${YELLOW}Composants:${NC}"
-                echo "  • Kubernetes 1.32"
+                echo "  • Kubernetes ${K8S_DISPLAY_VERSION}"
                 echo "  • keepalived (HA)"
                 echo "  • Calico (CNI)"
                 echo "  • MetalLB (Load Balancer)"
