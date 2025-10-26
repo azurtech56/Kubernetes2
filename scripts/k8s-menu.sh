@@ -70,12 +70,18 @@ show_step_menu() {
 # Menu add-ons
 show_addons_menu() {
     show_header
-    echo -e "${BOLD}${BLUE}═══ INSTALLATION DES ADD-ONS ═══${NC}"
+    echo -e "${BOLD}${BLUE}═══ GESTION DES ADD-ONS ═══${NC}"
     echo ""
-    echo -e "${GREEN}[1]${NC}  MetalLB - Load Balancer (install-metallb.sh)"
-    echo -e "${GREEN}[2]${NC}  Rancher - Interface Web (install-rancher.sh)"
-    echo -e "${GREEN}[3]${NC}  Monitoring - Prometheus + Grafana (install-monitoring.sh)"
+    echo -e "${MAGENTA}▶ Installation${NC}"
+    echo -e "${GREEN}[1]${NC}  MetalLB - Load Balancer"
+    echo -e "${GREEN}[2]${NC}  Rancher - Interface Web"
+    echo -e "${GREEN}[3]${NC}  Monitoring - Prometheus + Grafana"
     echo -e "${GREEN}[4]${NC}  Installer tous les add-ons"
+    echo ""
+    echo -e "${MAGENTA}▶ Désinstallation${NC}"
+    echo -e "${RED}[5]${NC}  Désinstaller MetalLB"
+    echo -e "${RED}[6]${NC}  Désinstaller Rancher"
+    echo -e "${RED}[7]${NC}  Désinstaller Monitoring"
     echo ""
     echo -e "${RED}[0]${NC}  Retour au menu principal"
     echo ""
@@ -202,28 +208,76 @@ run_script_no_sudo() {
 # Fonction pour afficher l'architecture
 show_architecture() {
     show_header
+
+    # Charger la configuration
+    if [ -f "./config.sh" ]; then
+        source "./config.sh"
+    else
+        VIP="192.168.0.200"
+        VIP_HOSTNAME="k8s"
+        DOMAIN_NAME="home.local"
+        MASTER1_IP="192.168.0.201"
+        MASTER1_HOSTNAME="k8s01-1"
+        MASTER2_IP="192.168.0.202"
+        MASTER2_HOSTNAME="k8s01-2"
+        MASTER3_IP="192.168.0.203"
+        MASTER3_HOSTNAME="k8s01-3"
+        METALLB_IP_START="192.168.0.220"
+        METALLB_IP_END="192.168.0.240"
+    fi
+
     echo -e "${BOLD}${BLUE}═══ ARCHITECTURE DU CLUSTER ═══${NC}"
     echo ""
     echo "                    ┌─────────────────┐"
     echo "                    │   IP Virtuelle  │"
-    echo "                    │  192.168.0.200  │"
-    echo "                    │      (k8s)      │"
+    echo "                    │  ${VIP}  │"
+    echo "                    │    (${VIP_HOSTNAME})      │"
     echo "                    └────────┬────────┘"
     echo "                             │"
     echo "        ┌────────────────────┼────────────────────┐"
     echo "        │                    │                    │"
     echo "   ┌────▼────┐          ┌────▼────┐          ┌────▼────┐"
     echo "   │ Master1 │          │ Master2 │          │ Master3 │"
-    echo "   │k8s01-1  │          │k8s01-2  │          │k8s01-3  │"
-    echo "   │.201     │          │.202     │          │.203     │"
+    echo "   │${MASTER1_HOSTNAME}  │          │${MASTER2_HOSTNAME}  │          │${MASTER3_HOSTNAME}  │"
+    echo "   │.${MASTER1_IP##*.}     │          │.${MASTER2_IP##*.}     │          │.${MASTER3_IP##*.}     │"
     echo "   └─────────┘          └─────────┘          └─────────┘"
     echo ""
     echo -e "${YELLOW}Configuration réseau:${NC}"
-    echo "  • IP Virtuelle (VIP): 192.168.0.200 → k8s.home.local"
-    echo "  • Master 1: 192.168.0.201 → k8s01-1.home.local"
-    echo "  • Master 2: 192.168.0.202 → k8s01-2.home.local"
-    echo "  • Master 3: 192.168.0.203 → k8s01-3.home.local"
-    echo "  • MetalLB Pool: 192.168.0.220-192.168.0.240 (21 IPs)"
+    echo "  • IP Virtuelle (VIP): ${VIP} → ${VIP_HOSTNAME}.${DOMAIN_NAME}"
+
+    # Afficher dynamiquement tous les masters configurés
+    master_num=1
+    while true; do
+        ip_var="MASTER${master_num}_IP"
+        hostname_var="MASTER${master_num}_HOSTNAME"
+        if [ -n "${!ip_var}" ]; then
+            echo "  • Master ${master_num}: ${!ip_var} → ${!hostname_var}.${DOMAIN_NAME}"
+            ((master_num++))
+        else
+            break
+        fi
+    done
+
+    # Afficher les workers s'ils existent
+    worker_num=1
+    workers_found=false
+    while true; do
+        ip_var="WORKER${worker_num}_IP"
+        hostname_var="WORKER${worker_num}_HOSTNAME"
+        if [ -n "${!ip_var}" ]; then
+            if [ "$workers_found" = false ]; then
+                echo "  • Workers:"
+                workers_found=true
+            fi
+            echo "    - Worker ${worker_num}: ${!ip_var} → ${!hostname_var}.${DOMAIN_NAME}"
+            ((worker_num++))
+        else
+            break
+        fi
+    done
+
+    echo "  • MetalLB Pool: ${METALLB_IP_START}-${METALLB_IP_END}"
+    echo "  • Pod Network: ${POD_NETWORK:-11.0.0.0/16}"
     echo ""
     read -p "Appuyez sur Entrée pour continuer..."
 }
@@ -609,6 +663,87 @@ help_menu() {
     done
 }
 
+# Fonction de désinstallation MetalLB
+uninstall_metallb() {
+    show_header
+    echo -e "${RED}═══ DÉSINSTALLATION DE METALLB ═══${NC}"
+    echo ""
+    echo -e "${YELLOW}Cette action va:${NC}"
+    echo "  - Supprimer toutes les ressources MetalLB"
+    echo "  - Supprimer le namespace metallb-system"
+    echo "  - Supprimer les IP pools et configurations"
+    echo ""
+    read -p "Êtes-vous sûr de vouloir désinstaller MetalLB? [y/N]: " confirm
+
+    if [[ $confirm =~ ^[Yy]$ ]]; then
+        echo ""
+        echo -e "${YELLOW}Désinstallation de MetalLB...${NC}"
+        kubectl delete ipaddresspools.metallb.io -n metallb-system --all 2>/dev/null || true
+        kubectl delete l2advertisements.metallb.io -n metallb-system --all 2>/dev/null || true
+        kubectl delete namespace metallb-system 2>/dev/null || true
+        echo -e "${GREEN}✓ MetalLB désinstallé${NC}"
+    else
+        echo -e "${YELLOW}Désinstallation annulée${NC}"
+    fi
+    echo ""
+    read -p "Appuyez sur Entrée pour continuer..."
+}
+
+# Fonction de désinstallation Rancher
+uninstall_rancher() {
+    show_header
+    echo -e "${RED}═══ DÉSINSTALLATION DE RANCHER ═══${NC}"
+    echo ""
+    echo -e "${YELLOW}Cette action va:${NC}"
+    echo "  - Supprimer Rancher (Helm)"
+    echo "  - Supprimer le namespace cattle-system"
+    echo "  - Supprimer cert-manager"
+    echo "  - Supprimer le namespace cert-manager"
+    echo ""
+    read -p "Êtes-vous sûr de vouloir désinstaller Rancher? [y/N]: " confirm
+
+    if [[ $confirm =~ ^[Yy]$ ]]; then
+        echo ""
+        echo -e "${YELLOW}Désinstallation de Rancher...${NC}"
+        helm uninstall rancher -n cattle-system 2>/dev/null || true
+        kubectl delete namespace cattle-system 2>/dev/null || true
+        echo -e "${YELLOW}Désinstallation de cert-manager...${NC}"
+        kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.0/cert-manager.yaml 2>/dev/null || true
+        kubectl delete namespace cert-manager 2>/dev/null || true
+        echo -e "${GREEN}✓ Rancher et cert-manager désinstallés${NC}"
+    else
+        echo -e "${YELLOW}Désinstallation annulée${NC}"
+    fi
+    echo ""
+    read -p "Appuyez sur Entrée pour continuer..."
+}
+
+# Fonction de désinstallation Monitoring
+uninstall_monitoring() {
+    show_header
+    echo -e "${RED}═══ DÉSINSTALLATION DU MONITORING ═══${NC}"
+    echo ""
+    echo -e "${YELLOW}Cette action va:${NC}"
+    echo "  - Supprimer Prometheus et Grafana (Helm)"
+    echo "  - Supprimer cAdvisor"
+    echo "  - Supprimer le namespace monitoring"
+    echo ""
+    read -p "Êtes-vous sûr de vouloir désinstaller le monitoring? [y/N]: " confirm
+
+    if [[ $confirm =~ ^[Yy]$ ]]; then
+        echo ""
+        echo -e "${YELLOW}Désinstallation de Prometheus/Grafana...${NC}"
+        helm uninstall prometheus -n monitoring 2>/dev/null || true
+        kubectl delete daemonset cadvisor -n monitoring 2>/dev/null || true
+        kubectl delete namespace monitoring 2>/dev/null || true
+        echo -e "${GREEN}✓ Monitoring désinstallé${NC}"
+    else
+        echo -e "${YELLOW}Désinstallation annulée${NC}"
+    fi
+    echo ""
+    read -p "Appuyez sur Entrée pour continuer..."
+}
+
 # Boucle principale
 main() {
     while true; do
@@ -655,6 +790,9 @@ main() {
                             run_script_no_sudo "./install-rancher.sh"
                             run_script_no_sudo "./install-monitoring.sh"
                             ;;
+                        5) uninstall_metallb ;;
+                        6) uninstall_rancher ;;
+                        7) uninstall_monitoring ;;
                         0) break ;;
                         *)
                             echo -e "${RED}Choix invalide${NC}"
