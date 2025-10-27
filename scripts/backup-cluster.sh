@@ -12,6 +12,20 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/logging.sh" 2>/dev/null || true
 
+# Charger bibliothèques v2.1
+if [ -f "$SCRIPT_DIR/lib/notifications.sh" ]; then
+    source "$SCRIPT_DIR/lib/notifications.sh"
+fi
+
+if [ -f "$SCRIPT_DIR/lib/performance.sh" ]; then
+    source "$SCRIPT_DIR/lib/performance.sh"
+    start_timer "backup" 2>/dev/null || true
+fi
+
+if [ -f "$SCRIPT_DIR/lib/error-codes.sh" ]; then
+    source "$SCRIPT_DIR/lib/error-codes.sh"
+fi
+
 # Couleurs
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -482,17 +496,28 @@ echo -e "${CYAN}═════════════════════�
 echo ""
 
 if [ "$DRY_RUN" = false ]; then
+    BACKUP_SIZE=$(du -h "$BACKUP_BASE_DIR/${BACKUP_NAME}.tar.gz" 2>/dev/null | cut -f1 || echo "N/A")
     echo -e "${YELLOW}Résumé:${NC}"
     echo "  Fichier: ${BACKUP_NAME}.tar.gz"
-    echo "  Taille: $(du -h "$BACKUP_BASE_DIR/${BACKUP_NAME}.tar.gz" 2>/dev/null | cut -f1 || echo "N/A")"
+    echo "  Taille: $BACKUP_SIZE"
     echo "  Emplacement: $BACKUP_BASE_DIR"
     echo ""
     echo -e "${YELLOW}Pour restaurer ce backup:${NC}"
     echo "  ./restore-cluster.sh $BACKUP_BASE_DIR/${BACKUP_NAME}.tar.gz"
     echo ""
+
+    # Notification v2.1
+    if type -t notify_backup &>/dev/null; then
+        notify_backup "success" "$BACKUP_BASE_DIR/${BACKUP_NAME}.tar.gz" "$BACKUP_SIZE"
+    fi
 else
     echo -e "${YELLOW}Mode DRY-RUN - Aucune modification effectuée${NC}"
     echo ""
+fi
+
+# Performance timer v2.1
+if type -t stop_timer &>/dev/null; then
+    stop_timer "backup"
 fi
 
 echo -e "${CYAN}════════════════════════════════════════════════════════════════${NC}"

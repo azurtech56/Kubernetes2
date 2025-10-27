@@ -41,6 +41,27 @@ else
     echo -e "${YELLOW}⚠ Bibliothèque d'idempotence non trouvée - Mode standard${NC}"
 fi
 
+# Charger bibliothèques v2.1
+if [ -f "$SCRIPT_DIR/lib/performance.sh" ]; then
+    source "$SCRIPT_DIR/lib/performance.sh"
+    init_cache
+    start_timer "common_setup"
+fi
+
+if [ -f "$SCRIPT_DIR/lib/error-codes.sh" ]; then
+    source "$SCRIPT_DIR/lib/error-codes.sh"
+fi
+
+if [ -f "$SCRIPT_DIR/lib/dry-run.sh" ]; then
+    source "$SCRIPT_DIR/lib/dry-run.sh"
+    init_dry_run
+fi
+
+if [ -f "$SCRIPT_DIR/lib/notifications.sh" ]; then
+    source "$SCRIPT_DIR/lib/notifications.sh"
+    notify_install_start "Configuration commune"
+fi
+
 if [ -f "$SCRIPT_DIR/config.sh" ]; then
     echo -e "${BLUE}Chargement de la configuration depuis config.sh...${NC}"
     source "$SCRIPT_DIR/config.sh"
@@ -156,3 +177,17 @@ echo ""
 echo -e "${YELLOW}Prochaines étapes:${NC}"
 echo "  - Pour un master: exécutez master-setup.sh"
 echo "  - Pour un worker: exécutez worker-setup.sh"
+
+# === v2.1 Performance & Notifications ===
+if type -t stop_timer &>/dev/null; then
+    stop_timer "common_setup"
+fi
+
+if type -t notify_install_success &>/dev/null; then
+    notify_install_success "Configuration commune"
+fi
+
+if type -t dry_run_summary &>/dev/null; then
+    dry_run_summary
+fi
+# === Fin v2.1 ===

@@ -8,6 +8,17 @@
 
 set -e
 
+# Charger les bibliothèques v2.1
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ -f "$SCRIPT_DIR/lib/error-codes.sh" ]; then
+    source "$SCRIPT_DIR/lib/error-codes.sh"
+fi
+
+if [ -f "$SCRIPT_DIR/lib/notifications.sh" ]; then
+    source "$SCRIPT_DIR/lib/notifications.sh"
+fi
+
 # Couleurs
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -379,15 +390,27 @@ perform_health_check() {
         echo -e "${GREEN}✓ ÉTAT: SAIN${NC}"
         echo -e "${GREEN}Le cluster fonctionne normalement${NC}"
         exit_code=0
+        # Notification v2.1
+        if type -t notify_health_check &>/dev/null; then
+            notify_health_check "healthy" "Cluster OK - $HEALTHY/$total_checks vérifications réussies"
+        fi
     elif [ "$CRITICAL" -eq 0 ]; then
         echo -e "${YELLOW}⚠ ÉTAT: AVERTISSEMENT${NC}"
         echo -e "${YELLOW}Le cluster fonctionne mais nécessite attention${NC}"
         exit_code=1
+        # Notification v2.1
+        if type -t notify_health_check &>/dev/null; then
+            notify_health_check "degraded" "$WARNING avertissement(s) détecté(s)"
+        fi
     else
         echo -e "${RED}✗ ÉTAT: CRITIQUE${NC}"
         echo -e "${RED}Le cluster a des problèmes critiques${NC}"
         send_notification "Cluster Kubernetes en état CRITIQUE: $CRITICAL problème(s)" "critical"
         exit_code=2
+        # Notification v2.1
+        if type -t notify_health_check &>/dev/null; then
+            notify_health_check "critical" "$CRITICAL problème(s) critique(s)"
+        fi
     fi
 
     echo ""
