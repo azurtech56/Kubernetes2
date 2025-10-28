@@ -345,7 +345,7 @@ export RANCHER_PASSWORD="admin"
 # Kubernetes
 export K8S_VERSION="1.32.2"
 export POD_SUBNET="11.0.0.0/16"
-export SERVICE_SUBNET="10.0.0.1/16"
+export SERVICE_SUBNET="10.0.0.0/16"
 ```
 
 📖 **Guide complet de configuration** : [CONFIGURATION-GUIDE.md](CONFIGURATION-GUIDE.md)

@@ -8,8 +8,9 @@ IP Virtuelle (VIP):  192.168.0.200  k8s.home.local (k8s)
 Master 1:            192.168.0.201  k8s01-1.home.local (k8s01-1)
 Master 2:            192.168.0.202  k8s01-2.home.local (k8s01-2)
 Master 3:            192.168.0.203  k8s01-3.home.local (k8s01-3)
+Workers:             192.168.0.211-213  (k8s-worker-1/2/3)
 
-Plage MetalLB:       192.168.0.210-192.168.0.230
+Plage MetalLB:       192.168.0.220-192.168.0.240
 Interface réseau:    ens33
 
 
@@ -330,7 +331,7 @@ metadata:
   namespace: metallb-system
 spec:
   addresses:
-  - 192.168.0.210-192.168.0.230
+  - 192.168.0.220-192.168.0.240
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement

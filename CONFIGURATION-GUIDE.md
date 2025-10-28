@@ -176,7 +176,7 @@ export VRRP_ADVERT_INT="1"
 ```bash
 export K8S_VERSION="1.32.2"
 export POD_SUBNET="11.0.0.0/16"
-export SERVICE_SUBNET="10.0.0.1/16"
+export SERVICE_SUBNET="10.0.0.0/16"
 export API_SERVER_PORT="6443"
 ```
 
