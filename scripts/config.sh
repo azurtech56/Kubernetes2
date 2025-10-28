@@ -222,6 +222,9 @@ export CERT_MANAGER_VERSION="v1.17.0"
 # Calico version (latest ou version spécifique comme v3.28.0)
 export CALICO_VERSION="latest"
 
+# local-path-provisioner version (Rancher storage provisioner)
+export STORAGE_PROVISIONER_VERSION="v0.0.30"
+
 # ═══════════════════════════════════════════════════════════════════════════
 # URLs DES MANIFESTS
 # ═══════════════════════════════════════════════════════════════════════════

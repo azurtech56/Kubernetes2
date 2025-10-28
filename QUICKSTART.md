@@ -100,11 +100,18 @@ kubectl get nodes
 
 kubectl get pods -A
 # Tous les pods doivent être "Running"
+
+kubectl get storageclass
+# Vérifier que "local-path" est marquée (default)
 ```
 
 ## 🎉 C'est fait !
 
 Votre cluster Kubernetes HA est opérationnel !
+
+**Composants installés automatiquement** :
+- ✅ Calico CNI (réseau des pods)
+- ✅ local-path-provisioner (stockage persistant)
 
 ## ➕ Ajouter les add-ons (optionnel)
 

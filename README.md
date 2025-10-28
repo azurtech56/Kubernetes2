@@ -151,17 +151,12 @@ Le script `setup-keepalived.sh` vous demandera de choisir le rôle (Master 1, 2 
 sudo ./init-cluster.sh
 ```
 
+Le script vous proposera automatiquement d'installer **Calico CNI** et le **Storage Provisioner**.
+Acceptez en appuyant sur **[Y]** (recommandé).
+
 Sauvegardez les commandes `kubeadm join` affichées !
 
-### 5. Installation de Calico
-
-**Sur le premier master (k8s01-1):**
-
-```bash
-./install-calico.sh
-```
-
-### 6. Ajout des autres masters
+### 5. Ajout des autres masters
 
 **Sur k8s01-2 et k8s01-3:**
 
@@ -179,7 +174,7 @@ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
-### 7. Ajout des workers
+### 6. Ajout des workers
 
 **Sur chaque worker:**
 
@@ -192,7 +187,7 @@ sudo kubeadm join k8s:6443 --token <token> \
     --discovery-token-ca-cert-hash sha256:<hash>
 ```
 
-### 8. Installation des add-ons (optionnel)
+### 7. Installation des add-ons (optionnel)
 
 **Sur le premier master (k8s01-1):**
 
@@ -226,18 +221,19 @@ Ces guides sont utiles pour :
 
 ## 🔧 Composants installés
 
-| Composant | Version | Description |
-|-----------|---------|-------------|
-| **Kubernetes** | 1.32 | Orchestrateur de conteneurs |
-| **containerd** | Latest | Runtime de conteneurs |
-| **Calico** | Latest | Plugin réseau (CNI) |
-| **keepalived** | Latest | Haute disponibilité (IP virtuelle) |
-| **MetalLB** | Latest | Load Balancer pour bare metal |
-| **Rancher** | Latest | Interface de gestion web |
-| **Prometheus** | Latest | Monitoring et alerting |
-| **Grafana** | Latest | Visualisation des métriques |
-| **cAdvisor** | Latest | Monitoring des conteneurs |
-| **cert-manager** | v1.17.0 | Gestion des certificats TLS |
+| Composant | Version | Description | Installation |
+|-----------|---------|-------------|--------------|
+| **Kubernetes** | 1.32 | Orchestrateur de conteneurs | Auto |
+| **containerd** | Latest | Runtime de conteneurs | Auto |
+| **Calico** | Latest | Plugin réseau (CNI) | Auto ✅ |
+| **local-path-provisioner** | v0.0.30 | Stockage persistant (Rancher) | Auto ✅ |
+| **keepalived** | Latest | Haute disponibilité (IP virtuelle) | Auto |
+| **MetalLB** | Latest | Load Balancer pour bare metal | Optionnel |
+| **Rancher** | Latest | Interface de gestion web | Optionnel |
+| **Prometheus** | Latest | Monitoring et alerting | Optionnel |
+| **Grafana** | Latest | Visualisation des métriques | Optionnel |
+| **cAdvisor** | Latest | Monitoring des conteneurs | Optionnel |
+| **cert-manager** | v1.17.0 | Gestion des certificats TLS | Optionnel |
 
 ## 📜 Scripts disponibles
 
@@ -253,12 +249,13 @@ Ces guides sont utiles pour :
 
 ### Scripts des add-ons
 
-| Script | Description | Où l'exécuter |
-|--------|-------------|---------------|
-| `install-calico.sh` | Installation de Calico CNI | Premier master |
-| `install-metallb.sh` | Installation de MetalLB | Premier master |
-| `install-rancher.sh` | Installation de Rancher | Premier master |
-| `install-monitoring.sh` | Installation de Prometheus + Grafana | Premier master |
+| Script | Description | Où l'exécuter | Type |
+|--------|-------------|---------------|------|
+| `install-calico.sh` | Installation de Calico CNI | Premier master | Auto ✅ |
+| `install-storage.sh` | Installation du stockage persistant | Premier master | Auto ✅ |
+| `install-metallb.sh` | Installation de MetalLB | Premier master | Optionnel |
+| `install-rancher.sh` | Installation de Rancher | Premier master | Optionnel |
+| `install-monitoring.sh` | Installation de Prometheus + Grafana | Premier master | Optionnel |
 
 ### Script de gestion
 
