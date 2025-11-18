@@ -6,6 +6,49 @@
 # Version: 1.0
 ################################################################################
 
+# Charger la configuration et la librairie
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Charger la librairie de configuration
+if [ -f "$SCRIPT_DIR/lib-config.sh" ]; then
+    source "$SCRIPT_DIR/lib-config.sh"
+else
+    echo "Erreur: lib-config.sh non trouvé dans $SCRIPT_DIR"
+    exit 1
+fi
+
+# Charger et valider la configuration
+load_kubernetes_config "$SCRIPT_DIR" || exit 1
+
+# Extraire version majeure.mineure (ex: 1.33 depuis 1.33.0)
+K8S_MAJOR_MINOR=$(get_k8s_major_minor)
+
+# ============================================================================
+# CONSTANTES DE MENU - Magic numbers éliminés
+# ============================================================================
+readonly MENU_INSTALL_WIZARD=1
+readonly MENU_STEP_BY_STEP=2
+readonly MENU_ADDONS=3
+readonly MENU_MANAGEMENT=4
+readonly MENU_DIAGNOSTICS=5
+readonly MENU_HELP=6
+readonly MENU_EXIT=0
+
+# Sous-menus - Installation par étapes
+readonly MENU_STEP_COMMON=1
+readonly MENU_STEP_MASTER=2
+readonly MENU_STEP_WORKER=3
+readonly MENU_STEP_KEEPALIVED=4
+readonly MENU_STEP_INIT_CLUSTER=5
+readonly MENU_STEP_CALICO=6
+readonly MENU_STEP_STORAGE=7
+
+# Sous-menus - Add-ons
+readonly MENU_ADDON_METALLB=1
+readonly MENU_ADDON_RANCHER=2
+readonly MENU_ADDON_MONITORING=3
+readonly MENU_ADDON_ALL=4
+
 # Couleurs
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -16,14 +59,111 @@ MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 BOLD='\033[1m'
 
+# ============================================================================
+# MENU HELPERS - Fonctions utilitaires pour affichage de menus
+# ============================================================================
+
 # Fonction pour afficher le titre
 show_header() {
     clear
     echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║${NC}  ${BOLD}${GREEN}Kubernetes 1.33 - Haute Disponibilité (HA)${NC}              ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}  ${BOLD}${GREEN}Kubernetes ${K8S_MAJOR_MINOR} - Haute Disponibilité (HA)${NC}              ${CYAN}║${NC}"
     echo -e "${CYAN}║${NC}  ${BOLD}Menu d'installation et de gestion${NC}                        ${CYAN}║${NC}"
     echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
+}
+
+# Afficher l'en-tête d'une section de menu
+display_menu_header() {
+    local title=$1
+    show_header
+    echo -e "${BOLD}${BLUE}═══ ${title} ═══${NC}"
+    echo ""
+}
+
+# Afficher une option de menu
+display_menu_option() {
+    local number=$1
+    local description=$2
+    local color=${3:-"GREEN"}
+    echo -e "${!color}[${number}]${NC}  ${description}"
+}
+
+# Afficher un titre de section dans un menu
+display_menu_section() {
+    local title=$1
+    echo -e "${MAGENTA}▶ ${title}${NC}"
+}
+
+# Afficher le séparateur de fin de menu
+display_menu_separator() {
+    echo ""
+    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
+}
+
+# Obtenir une entrée utilisateur validée pour menu
+get_menu_choice() {
+    local min=$1
+    local max=$2
+    local prompt="${3:-Votre choix: }"
+
+    while true; do
+        echo -ne "${YELLOW}${prompt}${NC}"
+        read choice
+
+        # Vérifier que c'est un nombre
+        if ! [[ "$choice" =~ ^[0-9]+$ ]]; then
+            echo -e "${RED}✗ Erreur: Entrez un nombre${NC}"
+            sleep 1
+            continue
+        fi
+
+        # Vérifier la plage
+        if [ "$choice" -lt "$min" ] || [ "$choice" -gt "$max" ]; then
+            echo -e "${RED}✗ Erreur: Entrez un nombre entre ${min} et ${max}${NC}"
+            sleep 1
+            continue
+        fi
+
+        echo "$choice"
+        return 0
+    done
+}
+
+# Exécuter une commande watch
+run_watch_command() {
+    local label=$1
+    local command=$2
+    local interval=${3:-2}
+
+    echo ""
+    echo -e "${YELLOW}Mode watch activé (${interval}s) - Appuyez sur Ctrl+C pour quitter${NC}"
+    echo ""
+    watch -n "$interval" -c "$command"
+}
+
+# ============================================================================
+# GENERIC MENU LOOP - Gestionnaire générique de boucle menu
+# ============================================================================
+# Usage: run_generic_menu_loop show_function_name handler_function_name
+run_generic_menu_loop() {
+    local menu_function=$1
+    local handler_function=$2
+
+    while true; do
+        "$menu_function"
+        choice=$(get_menu_choice 0 9)  # Plage générique 0-9
+
+        if [ "$choice" = "0" ]; then
+            break
+        fi
+
+        # Appeler le handler avec le choix
+        "$handler_function" "$choice" || {
+            echo -e "${RED}✗ Choix invalide${NC}"
+            sleep 1
+        }
+    done
 }
 
 # Fonction pour afficher le menu principal
@@ -148,56 +288,56 @@ show_help_menu() {
     echo -ne "${YELLOW}Votre choix: ${NC}"
 }
 
-# Fonction pour exécuter un script
-run_script() {
+# Fonction unifiée pour exécuter un script avec ou sans privilèges root
+# Usage: run_script_with_privilege "./script.sh" [true|false]
+# Default: true (utilise sudo)
+run_script_with_privilege() {
     local script=$1
+    local use_sudo=${2:-true}
+
     echo ""
     echo -e "${YELLOW}Exécution de ${script}...${NC}"
     echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
 
-    if [ -f "$script" ]; then
-        chmod +x "$script"
-        sudo "$script"
-        local exit_code=$?
-        echo ""
-        echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
-        if [ $exit_code -eq 0 ]; then
-            echo -e "${GREEN}✓ Script exécuté avec succès${NC}"
-        else
-            echo -e "${RED}✗ Erreur lors de l'exécution (code: $exit_code)${NC}"
-        fi
-    else
+    # Validation: vérifier que le script existe
+    if [ ! -f "$script" ]; then
         echo -e "${RED}✗ Script non trouvé: $script${NC}"
+        echo ""
+        read -p "Appuyez sur Entrée pour continuer..."
+        return 1
+    fi
+
+    # Rendre le script exécutable
+    chmod +x "$script"
+
+    # Exécuter avec ou sans sudo
+    if [[ "$use_sudo" == true ]]; then
+        sudo "$script"
+    else
+        "$script"
+    fi
+
+    local exit_code=$?
+    echo ""
+    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
+    if [ $exit_code -eq 0 ]; then
+        echo -e "${GREEN}✓ Script exécuté avec succès${NC}"
+    else
+        echo -e "${RED}✗ Erreur lors de l'exécution (code: $exit_code)${NC}"
     fi
 
     echo ""
     read -p "Appuyez sur Entrée pour continuer..."
+    return $exit_code
 }
 
-# Fonction pour exécuter un script sans sudo
+# Wrappers de compatibilité (deprecated - utiliser run_script_with_privilege)
+run_script() {
+    run_script_with_privilege "$1" true
+}
+
 run_script_no_sudo() {
-    local script=$1
-    echo ""
-    echo -e "${YELLOW}Exécution de ${script}...${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
-
-    if [ -f "$script" ]; then
-        chmod +x "$script"
-        "$script"
-        local exit_code=$?
-        echo ""
-        echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
-        if [ $exit_code -eq 0 ]; then
-            echo -e "${GREEN}✓ Script exécuté avec succès${NC}"
-        else
-            echo -e "${RED}✗ Erreur lors de l'exécution (code: $exit_code)${NC}"
-        fi
-    else
-        echo -e "${RED}✗ Script non trouvé: $script${NC}"
-    fi
-
-    echo ""
-    read -p "Appuyez sur Entrée pour continuer..."
+    run_script_with_privilege "$1" false
 }
 
 # Fonction pour afficher l'architecture
@@ -207,24 +347,28 @@ show_architecture() {
     echo ""
     echo "                    ┌─────────────────┐"
     echo "                    │   IP Virtuelle  │"
-    echo "                    │  192.168.0.200  │"
-    echo "                    │      (k8s)      │"
+    echo "                    │     ${VIP}    │"
+    echo "                    │    (${VIP_HOSTNAME})      │"
     echo "                    └────────┬────────┘"
     echo "                             │"
     echo "        ┌────────────────────┼────────────────────┐"
     echo "        │                    │                    │"
     echo "   ┌────▼────┐          ┌────▼────┐          ┌────▼────┐"
     echo "   │ Master1 │          │ Master2 │          │ Master3 │"
-    echo "   │k8s01-1  │          │k8s01-2  │          │k8s01-3  │"
-    echo "   │.201     │          │.202     │          │.203     │"
+    echo "   │${MASTER1_HOSTNAME}  │          │${MASTER2_HOSTNAME}  │          │${MASTER3_HOSTNAME}  │"
+    echo "   │${MASTER1_IP##*.} │          │${MASTER2_IP##*.} │          │${MASTER3_IP##*.} │"
     echo "   └─────────┘          └─────────┘          └─────────┘"
     echo ""
     echo -e "${YELLOW}Configuration réseau:${NC}"
-    echo "  • IP Virtuelle (VIP): 192.168.0.200 → k8s.home.local"
-    echo "  • Master 1: 192.168.0.201 → k8s01-1.home.local"
-    echo "  • Master 2: 192.168.0.202 → k8s01-2.home.local"
-    echo "  • Master 3: 192.168.0.203 → k8s01-3.home.local"
-    echo "  • MetalLB Pool: 192.168.0.220-192.168.0.240 (21 IPs)"
+    echo "  • IP Virtuelle (VIP): ${VIP} → ${VIP_HOSTNAME}.${DOMAIN_NAME}"
+    echo "  • Master 1: ${MASTER1_IP} → ${MASTER1_HOSTNAME}.${DOMAIN_NAME}"
+    echo "  • Master 2: ${MASTER2_IP} → ${MASTER2_HOSTNAME}.${DOMAIN_NAME}"
+    echo "  • Master 3: ${MASTER3_IP} → ${MASTER3_HOSTNAME}.${DOMAIN_NAME}"
+    # Calcul optimisé sans subshells externes
+    local start_octet="${METALLB_IP_START##*.}"
+    local end_octet="${METALLB_IP_END##*.}"
+    METALLB_COUNT=$((end_octet - start_octet))
+    echo "  • MetalLB Pool: ${METALLB_IP_START}-${METALLB_IP_END} (${METALLB_COUNT} IPs)"
     echo ""
     read -p "Appuyez sur Entrée pour continuer..."
 }
@@ -362,252 +506,200 @@ installation_wizard() {
     esac
 }
 
+# ============================================================================
+# HANDLERS - Gestionnaires d'actions pour les menus
+# ============================================================================
+
+# Handler pour le menu Gestion du cluster
+handle_management_choice() {
+    local choice=$1
+    case $choice in
+        1) ./generate-hosts.sh ;;
+        2) run_watch_command "Nœuds" "kubectl get nodes -o wide" ;;
+        3) run_watch_command "Pods" "kubectl get pods -A" ;;
+        4) run_watch_command "Services LoadBalancer" "kubectl get svc -A | grep -E 'NAMESPACE|LoadBalancer'" ;;
+        5)
+            kubectl cluster-info
+            echo ""
+            read -p "Appuyez sur Entrée pour continuer..."
+            ;;
+        6)
+            echo ""
+            kubeadm token create --print-join-command
+            echo ""
+            read -p "Appuyez sur Entrée pour continuer..."
+            ;;
+        7)
+            echo ""
+            kubeadm certs check-expiration
+            echo ""
+            read -p "Appuyez sur Entrée pour continuer..."
+            ;;
+        8)
+            echo ""
+            echo -e "${YELLOW}Mot de passe Grafana:${NC}"
+            kubectl get secret --namespace monitoring prometheus-grafana -o jsonpath="{.data.admin-password}" 2>/dev/null | base64 -d
+            echo ""
+            echo ""
+            read -p "Appuyez sur Entrée pour continuer..."
+            ;;
+        9)
+            echo ""
+            echo -e "${YELLOW}Mot de passe Rancher:${NC}"
+            kubectl get secret --namespace cattle-system bootstrap-secret -o jsonpath="{.data.bootstrapPassword}" 2>/dev/null | base64 -d
+            echo ""
+            echo ""
+            read -p "Appuyez sur Entrée pour continuer..."
+            ;;
+        *) return 1 ;;
+    esac
+}
+
+# Handler pour le menu Diagnostics
+handle_diagnostic_choice() {
+    local choice=$1
+    case $choice in
+        1) run_watch_command "Pods système" "kubectl get pods -n kube-system" ;;
+        2) run_watch_command "keepalived et IP virtuelle" "echo -e '${GREEN}=== État keepalived ===${NC}' && systemctl status keepalived --no-pager | head -15 && echo '' && echo -e '${GREEN}=== IP Virtuelle ===${NC}' && ip addr | grep -A2 '${VIP}'" ;;
+        3) run_watch_command "MetalLB" "echo '=== Pods MetalLB ===' && kubectl get pods -n metallb-system && echo '' && echo '=== IP Pools ===' && kubectl get ipaddresspools.metallb.io -n metallb-system" ;;
+        4) run_watch_command "Calico" "kubectl get pods -n kube-system | grep -E 'NAME|calico'" ;;
+        5)
+            echo ""
+            kubectl get pods -A
+            echo ""
+            read -p "Namespace du pod: " ns
+            read -p "Nom du pod: " pod
+            echo ""
+            kubectl logs -n "$ns" "$pod"
+            echo ""
+            read -p "Appuyez sur Entrée pour continuer..."
+            ;;
+        6)
+            echo ""
+            echo -e "${YELLOW}Création d'un déploiement nginx de test...${NC}"
+            kubectl create deployment nginx-test --image=nginx
+            kubectl expose deployment nginx-test --port=80 --type=LoadBalancer
+            sleep 5
+            kubectl get svc nginx-test
+            echo ""
+            echo -e "${YELLOW}Pour supprimer le test:${NC}"
+            echo "kubectl delete svc nginx-test"
+            echo "kubectl delete deployment nginx-test"
+            echo ""
+            read -p "Appuyez sur Entrée pour continuer..."
+            ;;
+        7)
+            show_header
+            echo -e "${BOLD}${BLUE}═══ RAPPORT COMPLET DU CLUSTER ═══${NC}"
+            echo ""
+            echo -e "${YELLOW}▶ Nœuds:${NC}"
+            kubectl get nodes -o wide
+            echo ""
+            echo -e "${YELLOW}▶ Pods système:${NC}"
+            kubectl get pods -n kube-system
+            echo ""
+            echo -e "${YELLOW}▶ Services LoadBalancer:${NC}"
+            kubectl get svc -A | grep LoadBalancer
+            echo ""
+            echo -e "${YELLOW}▶ État du cluster:${NC}"
+            kubectl cluster-info
+            echo ""
+            read -p "Appuyez sur Entrée pour continuer..."
+            ;;
+        *) return 1 ;;
+    esac
+}
+
+# Handler pour le menu Aide/Help
+handle_help_choice() {
+    local choice=$1
+    case $choice in
+        1) show_architecture ;;
+        2) show_installation_order ;;
+        3)
+            show_header
+            echo -e "${BOLD}${BLUE}═══ PORTS UTILISÉS ═══${NC}"
+            echo ""
+            echo -e "${YELLOW}Masters:${NC}"
+            echo "  • 6443    - Kubernetes API server"
+            echo "  • 2379    - etcd client"
+            echo "  • 2380    - etcd peer"
+            echo "  • 10250   - Kubelet API"
+            echo "  • 10251   - kube-scheduler"
+            echo "  • 10252   - kube-controller-manager"
+            echo "  • 10255   - Read-only Kubelet API"
+            echo "  • VRRP    - keepalived"
+            echo ""
+            echo -e "${YELLOW}Workers:${NC}"
+            echo "  • 10250   - Kubelet API"
+            echo "  • 30000-32767 - NodePort Services"
+            echo ""
+            read -p "Appuyez sur Entrée pour continuer..."
+            ;;
+        4)
+            show_header
+            echo -e "${BOLD}${BLUE}═══ COMMANDES UTILES ═══${NC}"
+            echo ""
+            echo -e "${YELLOW}Cluster:${NC}"
+            echo "  kubectl get nodes"
+            echo "  kubectl get pods -A"
+            echo "  kubectl cluster-info"
+            echo ""
+            echo -e "${YELLOW}Diagnostics:${NC}"
+            echo "  kubectl describe node <nom>"
+            echo "  kubectl logs -n <namespace> <pod>"
+            echo "  kubectl top nodes"
+            echo ""
+            echo -e "${YELLOW}keepalived:${NC}"
+            echo "  systemctl status keepalived"
+            echo "  journalctl -u keepalived -f"
+            echo "  ip addr show"
+            echo ""
+            read -p "Appuyez sur Entrée pour continuer..."
+            ;;
+        5)
+            show_header
+            echo -e "${BOLD}${BLUE}═══ À PROPOS ═══${NC}"
+            echo ""
+            echo -e "${GREEN}Kubernetes ${K8S_MAJOR_MINOR} - Haute Disponibilité${NC}"
+            echo "Version: 1.0"
+            echo ""
+            echo "Scripts d'installation automatisés pour un cluster"
+            echo "Kubernetes en haute disponibilité avec keepalived."
+            echo ""
+            echo -e "${YELLOW}Composants:${NC}"
+            echo "  • Kubernetes ${K8S_MAJOR_MINOR}"
+            echo "  • keepalived (HA)"
+            echo "  • Calico (CNI)"
+            echo "  • MetalLB (Load Balancer)"
+            echo "  • Rancher (Interface Web)"
+            echo "  • Prometheus + Grafana (Monitoring)"
+            echo ""
+            echo -e "${YELLOW}Compatible avec:${NC}"
+            echo "  • Ubuntu 20.04/22.04/24.04"
+            echo "  • Debian 12/13"
+            echo ""
+            echo -e "${YELLOW}Projet Open Source${NC}"
+            echo ""
+            read -p "Appuyez sur Entrée pour continuer..."
+            ;;
+        *) return 1 ;;
+    esac
+}
+
 # Gestion du cluster
 manage_cluster() {
-    while true; do
-        show_management_menu
-        read choice
-
-        case $choice in
-            1)
-                ./generate-hosts.sh
-                ;;
-            2)
-                echo ""
-                echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
-                echo ""
-                watch -n 2 -c "kubectl get nodes -o wide"
-                ;;
-            3)
-                echo ""
-                echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
-                echo ""
-                watch -n 2 -c "kubectl get pods -A"
-                ;;
-            4)
-                echo ""
-                echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
-                echo ""
-                watch -n 2 -c "kubectl get svc -A | grep -E 'NAMESPACE|LoadBalancer'"
-                ;;
-            5)
-                kubectl cluster-info
-                echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
-                ;;
-            6)
-                echo ""
-                kubeadm token create --print-join-command
-                echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
-                ;;
-            7)
-                echo ""
-                kubeadm certs check-expiration
-                echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
-                ;;
-            8)
-                echo ""
-                echo -e "${YELLOW}Mot de passe Grafana:${NC}"
-                kubectl get secret --namespace monitoring prometheus-grafana -o jsonpath="{.data.admin-password}" 2>/dev/null | base64 -d
-                echo ""
-                echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
-                ;;
-            9)
-                echo ""
-                echo -e "${YELLOW}Mot de passe Rancher:${NC}"
-                kubectl get secret --namespace cattle-system bootstrap-secret -o jsonpath="{.data.bootstrapPassword}" 2>/dev/null | base64 -d
-                echo ""
-                echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
-                ;;
-            0)
-                break
-                ;;
-            *)
-                echo -e "${RED}Choix invalide${NC}"
-                sleep 1
-                ;;
-        esac
-    done
+    run_generic_menu_loop show_management_menu handle_management_choice
 }
 
 # Diagnostics
 run_diagnostics() {
-    while true; do
-        show_diagnostic_menu
-        read choice
-
-        case $choice in
-            1)
-                echo ""
-                echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
-                echo ""
-                watch -n 2 -c "kubectl get pods -n kube-system"
-                ;;
-            2)
-                echo ""
-                echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
-                echo ""
-                watch -n 2 "echo -e '${GREEN}=== État keepalived ===${NC}' && systemctl status keepalived --no-pager | head -15 && echo '' && echo -e '${GREEN}=== IP Virtuelle ===${NC}' && ip addr | grep -A2 '192.168.0.200'"
-                ;;
-            3)
-                echo ""
-                echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
-                echo ""
-                watch -n 2 -c "echo '=== Pods MetalLB ===' && kubectl get pods -n metallb-system && echo '' && echo '=== IP Pools ===' && kubectl get ipaddresspools.metallb.io -n metallb-system"
-                ;;
-            4)
-                echo ""
-                echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
-                echo ""
-                watch -n 2 -c "kubectl get pods -n kube-system | grep -E 'NAME|calico'"
-                ;;
-            5)
-                echo ""
-                kubectl get pods -A
-                echo ""
-                read -p "Namespace du pod: " ns
-                read -p "Nom du pod: " pod
-                echo ""
-                kubectl logs -n "$ns" "$pod"
-                echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
-                ;;
-            6)
-                echo ""
-                echo -e "${YELLOW}Création d'un déploiement nginx de test...${NC}"
-                kubectl create deployment nginx-test --image=nginx
-                kubectl expose deployment nginx-test --port=80 --type=LoadBalancer
-                sleep 5
-                kubectl get svc nginx-test
-                echo ""
-                echo -e "${YELLOW}Pour supprimer le test:${NC}"
-                echo "kubectl delete svc nginx-test"
-                echo "kubectl delete deployment nginx-test"
-                echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
-                ;;
-            7)
-                show_header
-                echo -e "${BOLD}${BLUE}═══ RAPPORT COMPLET DU CLUSTER ═══${NC}"
-                echo ""
-                echo -e "${YELLOW}▶ Nœuds:${NC}"
-                kubectl get nodes -o wide
-                echo ""
-                echo -e "${YELLOW}▶ Pods système:${NC}"
-                kubectl get pods -n kube-system
-                echo ""
-                echo -e "${YELLOW}▶ Services LoadBalancer:${NC}"
-                kubectl get svc -A | grep LoadBalancer
-                echo ""
-                echo -e "${YELLOW}▶ État du cluster:${NC}"
-                kubectl cluster-info
-                echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
-                ;;
-            0)
-                break
-                ;;
-            *)
-                echo -e "${RED}Choix invalide${NC}"
-                sleep 1
-                ;;
-        esac
-    done
+    run_generic_menu_loop show_diagnostic_menu handle_diagnostic_choice
 }
 
 # Menu aide détaillé
 help_menu() {
-    while true; do
-        show_help_menu
-        read choice
-
-        case $choice in
-            1)
-                show_architecture
-                ;;
-            2)
-                show_installation_order
-                ;;
-            3)
-                show_header
-                echo -e "${BOLD}${BLUE}═══ PORTS UTILISÉS ═══${NC}"
-                echo ""
-                echo -e "${YELLOW}Masters:${NC}"
-                echo "  • 6443    - Kubernetes API server"
-                echo "  • 2379    - etcd client"
-                echo "  • 2380    - etcd peer"
-                echo "  • 10250   - Kubelet API"
-                echo "  • 10251   - kube-scheduler"
-                echo "  • 10252   - kube-controller-manager"
-                echo "  • 10255   - Read-only Kubelet API"
-                echo "  • VRRP    - keepalived"
-                echo ""
-                echo -e "${YELLOW}Workers:${NC}"
-                echo "  • 10250   - Kubelet API"
-                echo "  • 30000-32767 - NodePort Services"
-                echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
-                ;;
-            4)
-                show_header
-                echo -e "${BOLD}${BLUE}═══ COMMANDES UTILES ═══${NC}"
-                echo ""
-                echo -e "${YELLOW}Cluster:${NC}"
-                echo "  kubectl get nodes"
-                echo "  kubectl get pods -A"
-                echo "  kubectl cluster-info"
-                echo ""
-                echo -e "${YELLOW}Diagnostics:${NC}"
-                echo "  kubectl describe node <nom>"
-                echo "  kubectl logs -n <namespace> <pod>"
-                echo "  kubectl top nodes"
-                echo ""
-                echo -e "${YELLOW}keepalived:${NC}"
-                echo "  systemctl status keepalived"
-                echo "  journalctl -u keepalived -f"
-                echo "  ip addr show"
-                echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
-                ;;
-            5)
-                show_header
-                echo -e "${BOLD}${BLUE}═══ À PROPOS ═══${NC}"
-                echo ""
-                echo -e "${GREEN}Kubernetes 1.33 - Haute Disponibilité${NC}"
-                echo "Version: 1.0"
-                echo ""
-                echo "Scripts d'installation automatisés pour un cluster"
-                echo "Kubernetes en haute disponibilité avec keepalived."
-                echo ""
-                echo -e "${YELLOW}Composants:${NC}"
-                echo "  • Kubernetes 1.33"
-                echo "  • keepalived (HA)"
-                echo "  • Calico (CNI)"
-                echo "  • MetalLB (Load Balancer)"
-                echo "  • Rancher (Interface Web)"
-                echo "  • Prometheus + Grafana (Monitoring)"
-                echo ""
-                echo -e "${YELLOW}Compatible avec:${NC}"
-                echo "  • Ubuntu 20.04/22.04/24.04"
-                echo "  • Debian 12/13"
-                echo ""
-                echo -e "${YELLOW}Projet Open Source${NC}"
-                echo ""
-                read -p "Appuyez sur Entrée pour continuer..."
-                ;;
-            0)
-                break
-                ;;
-            *)
-                echo -e "${RED}Choix invalide${NC}"
-                sleep 1
-                ;;
-        esac
-    done
+    run_generic_menu_loop show_help_menu handle_help_choice
 }
 
 # Boucle principale
