@@ -85,7 +85,7 @@ CERT_SANS_API="${CERT_SANS_API}\n    - \"localhost\"\n    - \"127.0.0.1\"\n    -
 
 # Générer le fichier de configuration
 cat > kubelet-ha.yaml <<EOF
-apiVersion: kubeadm.k8s.io/v1beta3
+apiVersion: kubeadm.k8s.io/v1beta4
 kind: InitConfiguration
 localAPIEndpoint:
   advertiseAddress: "${LOCAL_IP}"
@@ -93,24 +93,28 @@ localAPIEndpoint:
 nodeRegistration:
   name: "${FIRST_MASTER_HOSTNAME}"
   criSocket: "/var/run/containerd/containerd.sock"
+
 ---
-apiVersion: kubeadm.k8s.io/v1beta3
+apiVersion: kubeadm.k8s.io/v1beta4
 kind: ClusterConfiguration
+<<<<<<< HEAD
 kubernetesVersion: "${K8S_VERSION:-1.33.0}"
+=======
+kubernetesVersion: "${K8S_VERSION:-v1.33.0}"
+>>>>>>> 9ba4bd49354a5c53a3f7b546b5cb7592abe0a53f
 controlPlaneEndpoint: "${VIP_HOSTNAME:-k8s}:${API_SERVER_PORT:-6443}"
 networking:
   podSubnet: "${POD_SUBNET:-11.0.0.0/16}"
   serviceSubnet: "${SERVICE_SUBNET:-10.0.0.0/16}"
 apiServer:
   certSANs:
-$(echo -e "$CERT_SANS_API")
+$(echo -e "$CERT_SANS_API" | sed 's/^/    - /')
 etcd:
   local:
     dataDir: "/var/lib/etcd"
-    certSANs:
-$(echo -e "$CERT_SANS_API")
 controllerManager: {}
 scheduler: {}
+
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
@@ -177,22 +181,67 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  Cluster initialisé avec succès !${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
+
+# Installation automatique des composants essentiels
+echo -e "${YELLOW}Installation des composants essentiels...${NC}"
+echo ""
+echo -e "${BLUE}Pour que le cluster soit fonctionnel, vous devez installer:${NC}"
+echo "  1. Calico CNI (réseau des pods) - OBLIGATOIRE"
+echo "  2. Storage Provisioner (stockage persistant) - RECOMMANDÉ"
+echo ""
+read -p "Voulez-vous installer automatiquement Calico et le Storage Provisioner maintenant ? [Y/n]: " install_essentials
+
+if [[ ! $install_essentials =~ ^[Nn]$ ]]; then
+    echo ""
+    echo -e "${BLUE}═══════════════════════════════════════${NC}"
+    echo -e "${BLUE}  Installation de Calico CNI${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════${NC}"
+    if [ -f "$SCRIPT_DIR/install-calico.sh" ]; then
+        bash "$SCRIPT_DIR/install-calico.sh"
+    else
+        echo -e "${RED}Erreur: install-calico.sh non trouvé${NC}"
+        echo -e "${YELLOW}Veuillez exécuter manuellement: ./install-calico.sh${NC}"
+    fi
+
+    echo ""
+    echo -e "${BLUE}═══════════════════════════════════════${NC}"
+    echo -e "${BLUE}  Installation du Storage Provisioner${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════${NC}"
+    if [ -f "$SCRIPT_DIR/install-storage.sh" ]; then
+        bash "$SCRIPT_DIR/install-storage.sh"
+    else
+        echo -e "${RED}Erreur: install-storage.sh non trouvé${NC}"
+        echo -e "${YELLOW}Veuillez exécuter manuellement: ./install-storage.sh${NC}"
+    fi
+
+    echo ""
+    echo -e "${GREEN}✓ Composants essentiels installés${NC}"
+    echo ""
+else
+    echo ""
+    echo -e "${YELLOW}⚠ Installation manuelle requise${NC}"
+    echo -e "${BLUE}N'oubliez pas d'installer ces composants:${NC}"
+    echo "  1. ./install-calico.sh (OBLIGATOIRE)"
+    echo "  2. ./install-storage.sh (RECOMMANDÉ)"
+    echo ""
+fi
+
 echo -e "${YELLOW}Prochaines étapes:${NC}"
 echo ""
-echo -e "${BLUE}1. Installer Calico (CNI):${NC}"
-echo "   ./install-calico.sh"
-echo ""
-echo -e "${BLUE}2. Ajouter les autres masters:${NC}"
+echo -e "${BLUE}1. Ajouter les autres masters:${NC}"
 echo "   Voir le fichier join-commands.txt pour les commandes"
 echo "   $(get_master_count 2>/dev/null || echo '3') masters total configurés dans config.sh"
 echo ""
-echo -e "${BLUE}3. Ajouter les workers:${NC}"
+echo -e "${BLUE}2. Ajouter les workers:${NC}"
 echo "   Voir le fichier join-commands.txt pour les commandes"
 echo ""
-echo -e "${BLUE}4. Installer MetalLB:${NC}"
+echo -e "${BLUE}3. Installer MetalLB (Load Balancer):${NC}"
 echo "   ./install-metallb.sh"
 echo ""
-echo -e "${BLUE}5. Installer Rancher (optionnel):${NC}"
+echo -e "${BLUE}4. Installer Rancher (Interface Web - optionnel):${NC}"
 echo "   ./install-rancher.sh"
+echo ""
+echo -e "${BLUE}5. Installer Prometheus + Grafana (Monitoring - optionnel):${NC}"
+echo "   ./install-monitoring.sh"
 echo ""
 cat join-commands.txt

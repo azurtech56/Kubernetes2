@@ -10,4 +10,5 @@ spec:
     - port: 80
       targetPort: 3000
   type: LoadBalancer
-  loadBalancerIP: 192.168.0.215  # Remplace par l'IP statique réservée
+  # loadBalancerIP: 192.168.0.XXX  # Optionnel - MetalLB attribuera automatiquement une IP de la plage 220-240
+  # Si vous souhaitez une IP fixe, décommentez et choisissez une IP dans la plage MetalLB (220-240)

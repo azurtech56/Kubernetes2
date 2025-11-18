@@ -119,6 +119,17 @@ apt install -y kubelet kubeadm kubectl
 apt-mark hold kubelet kubeadm kubectl
 echo -e "${GREEN}✓ Composants Kubernetes installés${NC}"
 
+# Créer des liens symboliques pour les plugins CNI
+# kubernetes-cni installe dans /opt/cni/bin mais kubelet cherche dans /usr/lib/cni
+echo -e "${BLUE}Configuration des liens symboliques CNI...${NC}"
+mkdir -p /usr/lib/cni
+if [ -d /opt/cni/bin ]; then
+    ln -sf /opt/cni/bin/* /usr/lib/cni/ 2>/dev/null || true
+    echo -e "${GREEN}✓ Plugins CNI accessibles dans /usr/lib/cni${NC}"
+else
+    echo -e "${YELLOW}⚠ /opt/cni/bin non trouvé, les plugins CNI seront installés plus tard${NC}"
+fi
+
 echo -e "${YELLOW}[8/8] Vérification de la version...${NC}"
 kubeadm version
 kubectl version --client
