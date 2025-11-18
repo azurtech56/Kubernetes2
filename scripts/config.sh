@@ -15,13 +15,13 @@
 export DOMAIN_NAME="home.local"
 
 # IP Virtuelle (VIP) pour la haute disponibilité
-export VIP="192.168.0.200"
+export VIP="192.168.10.29"
 export VIP_HOSTNAME="k8s"
 export VIP_FQDN="${VIP_HOSTNAME}.${DOMAIN_NAME}"
 
 # Réseau des nœuds du cluster (utilisé pour UFW)
 # ⚠️ IMPORTANT: Doit inclure tous les nœuds masters et workers
-export CLUSTER_NODES_NETWORK="192.168.0.0/24"
+export CLUSTER_NODES_NETWORK="192.168.10.0/24"
 
 # Réseau des pods (Calico)
 export POD_NETWORK="11.0.0.0/16"
@@ -39,16 +39,16 @@ export POD_NETWORK="11.0.0.0/16"
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Master 1 (Premier master - MASTER keepalived)
-export MASTER1_IP="192.168.0.201"
-export MASTER1_HOSTNAME="k8s01-1"
+export MASTER1_IP="192.168.10.30"
+export MASTER1_HOSTNAME="k8s-master"
 export MASTER1_FQDN="${MASTER1_HOSTNAME}.${DOMAIN_NAME}"
 export MASTER1_PRIORITY="101"
 
 # Master 2 (BACKUP keepalived)
-export MASTER2_IP="192.168.0.202"
-export MASTER2_HOSTNAME="k8s01-2"
-export MASTER2_FQDN="${MASTER2_HOSTNAME}.${DOMAIN_NAME}"
-export MASTER2_PRIORITY="100"
+#export MASTER2_IP="192.168.0.202"
+#export MASTER2_HOSTNAME="k8s01-2"
+#export MASTER2_FQDN="${MASTER2_HOSTNAME}.${DOMAIN_NAME}"
+#export MASTER2_PRIORITY="100"
 
 # Master 3 (BACKUP keepalived)
 #export MASTER3_IP="192.168.0.203"
@@ -80,19 +80,19 @@ export MASTER2_PRIORITY="100"
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Worker 1
-export WORKER1_IP="192.168.0.211"
+export WORKER1_IP="192.168.10.31"
 export WORKER1_HOSTNAME="k8s-worker-1"
 export WORKER1_FQDN="${WORKER1_HOSTNAME}.${DOMAIN_NAME}"
 
 # Worker 2
-export WORKER2_IP="192.168.0.212"
+export WORKER2_IP="192.168.10.32"
 export WORKER2_HOSTNAME="k8s-worker-2"
 export WORKER2_FQDN="${WORKER2_HOSTNAME}.${DOMAIN_NAME}"
 
 # Worker 3
-export WORKER3_IP="192.168.0.213"
-export WORKER3_HOSTNAME="k8s-worker-3"
-export WORKER3_FQDN="${WORKER3_HOSTNAME}.${DOMAIN_NAME}"
+#export WORKER3_IP="192.168.0.213"
+#export WORKER3_HOSTNAME="k8s-worker-3"
+#export WORKER3_FQDN="${WORKER3_HOSTNAME}.${DOMAIN_NAME}"
 
 # Pour ajouter un 4ème worker, décommentez les lignes ci-dessous :
 # export WORKER4_IP="192.168.0.214"
@@ -140,8 +140,8 @@ export NETWORK_INTERFACE="${NETWORK_INTERFACE:-auto}"
 # Plage d'adresses IP pour MetalLB Load Balancer
 # ⚠️ IMPORTANT: Cette plage NE DOIT PAS chevaucher les IPs des nœuds (.200-.213)
 # Plage disponible recommandée: .220-.240 (21 IPs pour les services LoadBalancer)
-export METALLB_IP_START="192.168.0.220"
-export METALLB_IP_END="192.168.0.240"
+export METALLB_IP_START="192.168.10.220"
+export METALLB_IP_END="192.168.10.240"
 export METALLB_IP_RANGE="${METALLB_IP_START}-${METALLB_IP_END}"
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -166,7 +166,7 @@ export VRRP_ADVERT_INT="1"
 # Version de Kubernetes (format: MAJEUR.MINEUR.PATCH)
 # Exemples: "1.32.2", "1.31.5", "1.30.8"
 # Note: Le repository utilisera automatiquement MAJEUR.MINEUR (ex: v1.32)
-export K8S_VERSION="1.32.2"
+export K8S_VERSION="1.33"
 
 # Version du repository (extraite automatiquement de K8S_VERSION)
 # Format: MAJEUR.MINEUR (ex: "1.32" depuis "1.32.2")
