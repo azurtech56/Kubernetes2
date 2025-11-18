@@ -85,7 +85,7 @@ CERT_SANS_API="${CERT_SANS_API}\n    - \"localhost\"\n    - \"127.0.0.1\"\n    -
 
 # Générer le fichier de configuration
 cat > kubelet-ha.yaml <<EOF
-apiVersion: kubeadm.k8s.io/v1beta3
+apiVersion: kubeadm.k8s.io/v1beta4
 kind: InitConfiguration
 localAPIEndpoint:
   advertiseAddress: "${LOCAL_IP}"
@@ -93,10 +93,11 @@ localAPIEndpoint:
 nodeRegistration:
   name: "${FIRST_MASTER_HOSTNAME}"
   criSocket: "/var/run/containerd/containerd.sock"
+
 ---
-apiVersion: kubeadm.k8s.io/v1beta3
+apiVersion: kubeadm.k8s.io/v1beta4
 kind: ClusterConfiguration
-kubernetesVersion: "${K8S_VERSION:-1.32.2}"
+kubernetesVersion: "${K8S_VERSION:-v1.33.0}"
 controlPlaneEndpoint: "${VIP_HOSTNAME:-k8s}:${API_SERVER_PORT:-6443}"
 networking:
   podSubnet: "${POD_SUBNET:-11.0.0.0/16}"
@@ -105,12 +106,10 @@ apiServer:
   certSANs:
 $(echo -e "$CERT_SANS_API")
 etcd:
-  local:
-    dataDir: "/var/lib/etcd"
-    certSANs:
-$(echo -e "$CERT_SANS_API")
+  external: {}
 controllerManager: {}
 scheduler: {}
+
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
