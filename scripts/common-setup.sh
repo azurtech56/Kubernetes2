@@ -32,8 +32,8 @@ if [ -f "$SCRIPT_DIR/config.sh" ]; then
     source "$SCRIPT_DIR/config.sh"
 else
     echo -e "${YELLOW}Avertissement: config.sh non trouvé, utilisation de la version par défaut${NC}"
-    K8S_VERSION="1.32.2"
-    K8S_REPO_VERSION="1.32"
+    K8S_VERSION="1.33.0"
+    K8S_REPO_VERSION="1.33"
 fi
 
 echo -e "${BLUE}Version Kubernetes à installer: ${K8S_VERSION}${NC}"

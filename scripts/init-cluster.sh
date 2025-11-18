@@ -96,7 +96,7 @@ nodeRegistration:
 ---
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
-kubernetesVersion: "${K8S_VERSION:-1.32.2}"
+kubernetesVersion: "${K8S_VERSION:-1.33.0}"
 controlPlaneEndpoint: "${VIP_HOSTNAME:-k8s}:${API_SERVER_PORT:-6443}"
 networking:
   podSubnet: "${POD_SUBNET:-11.0.0.0/16}"
@@ -122,7 +122,7 @@ echo -e "${BLUE}Aperçu de la configuration:${NC}"
 echo "  - Hostname: ${FIRST_MASTER_HOSTNAME}"
 echo "  - IP locale: ${LOCAL_IP}"
 echo "  - VIP: ${VIP:-192.168.0.200}"
-echo "  - Kubernetes: ${K8S_VERSION:-1.32.2}"
+echo "  - Kubernetes: ${K8S_VERSION:-1.33.0}"
 echo "  - Masters configurés: $(get_master_count 2>/dev/null || echo '3')"
 echo ""
 

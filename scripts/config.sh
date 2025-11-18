@@ -164,9 +164,9 @@ export VRRP_ADVERT_INT="1"
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Version de Kubernetes (format: MAJEUR.MINEUR.PATCH)
-# Exemples: "1.32.2", "1.31.5", "1.30.8"
-# Note: Le repository utilisera automatiquement MAJEUR.MINEUR (ex: v1.32)
-export K8S_VERSION="1.32.2"
+# Exemples: "1.33.0", "1.32.2", "1.31.5", "1.30.8"
+# Note: Le repository utilisera automatiquement MAJEUR.MINEUR (ex: v1.33)
+export K8S_VERSION="1.33.0"
 
 # Version du repository (extraite automatiquement de K8S_VERSION)
 # Format: MAJEUR.MINEUR (ex: "1.32" depuis "1.32.2")

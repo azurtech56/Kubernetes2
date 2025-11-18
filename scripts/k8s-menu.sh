@@ -20,7 +20,7 @@ BOLD='\033[1m'
 show_header() {
     clear
     echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║${NC}  ${BOLD}${GREEN}Kubernetes 1.32 - Haute Disponibilité (HA)${NC}              ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}  ${BOLD}${GREEN}Kubernetes 1.33 - Haute Disponibilité (HA)${NC}              ${CYAN}║${NC}"
     echo -e "${CYAN}║${NC}  ${BOLD}Menu d'installation et de gestion${NC}                        ${CYAN}║${NC}"
     echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
@@ -576,14 +576,14 @@ help_menu() {
                 show_header
                 echo -e "${BOLD}${BLUE}═══ À PROPOS ═══${NC}"
                 echo ""
-                echo -e "${GREEN}Kubernetes 1.32 - Haute Disponibilité${NC}"
+                echo -e "${GREEN}Kubernetes 1.33 - Haute Disponibilité${NC}"
                 echo "Version: 1.0"
                 echo ""
                 echo "Scripts d'installation automatisés pour un cluster"
                 echo "Kubernetes en haute disponibilité avec keepalived."
                 echo ""
                 echo -e "${YELLOW}Composants:${NC}"
-                echo "  • Kubernetes 1.32"
+                echo "  • Kubernetes 1.33"
                 echo "  • keepalived (HA)"
                 echo "  • Calico (CNI)"
                 echo "  • MetalLB (Load Balancer)"

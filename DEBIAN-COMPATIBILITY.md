@@ -16,7 +16,7 @@ Les scripts d'installation sont **100% compatibles** avec Debian 12 (Bookworm) e
 
 ### Repository Kubernetes
 - Kubernetes fournit des packages **Debian officiels**
-- Le repository utilisé : `https://pkgs.k8s.io/core:/stable:/v1.32/deb/`
+- Le repository utilisé : `https://pkgs.k8s.io/core:/stable:/v1.33/deb/`
 - Ce repository est fait pour les systèmes basés sur Debian (Ubuntu, Debian, etc.)
 
 ### Outils réseau
@@ -122,13 +122,13 @@ sudo ./init-cluster.sh
 
 **Symptôme** :
 ```
-GPG error: https://pkgs.k8s.io/core:/stable:/v1.32/deb InRelease
+GPG error: https://pkgs.k8s.io/core:/stable:/v1.33/deb InRelease
 ```
 
 **Solution** :
 ```bash
 sudo rm /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.33/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 sudo apt update
 ```
 
@@ -149,7 +149,28 @@ sudo systemctl disable apparmor
 sudo systemctl stop apparmor
 ```
 
-### Problème 3 : Firewall nftables vs iptables
+### Problème 3 : Lien symbolique Calico manquant
+
+**Symptôme** :
+```
+calico-node pod en CrashLoopBackOff
+"CNI plugin not found" dans les logs
+```
+
+**Solution** :
+```bash
+# Créer les liens symboliques vers Calico
+sudo ln -s /opt/cni/bin/calico /usr/lib/cni/calico
+sudo ln -s /opt/cni/bin/calico-ipam /usr/lib/cni/calico-ipam
+
+# Vérifier
+ls -l /usr/lib/cni/ | grep calico
+
+# Redémarrer Calico
+kubectl rollout restart daemonset/calico-node -n kube-system
+```
+
+### Problème 4 : Firewall nftables vs iptables
 
 Debian 12+ utilise `nftables` par défaut au lieu de `iptables`.
 

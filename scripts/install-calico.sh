@@ -1,7 +1,7 @@
 #!/bin/bash
 ################################################################################
 # Script d'installation de Calico CNI
-# Compatible avec: Kubernetes 1.32.2
+# Compatible avec: Kubernetes 1.33.0
 # Auteur: azurtech56
 # Version: 1.0
 ################################################################################
@@ -63,6 +63,18 @@ echo -e "${GREEN}✓ Manifest Calico appliqué${NC}"
 
 echo -e "${YELLOW}[2/2] Attente du démarrage des pods Calico...${NC}"
 echo "Cela peut prendre quelques minutes..."
+
+# Créer les liens symboliques Calico si manquants (utile pour Debian)
+echo -e "${BLUE}Vérification des liens symboliques Calico...${NC}"
+if [ ! -L "/usr/lib/cni/calico" ]; then
+    echo -e "${YELLOW}Création des liens symboliques Calico...${NC}"
+    sudo mkdir -p /usr/lib/cni
+    sudo ln -s /opt/cni/bin/calico /usr/lib/cni/calico 2>/dev/null || true
+    sudo ln -s /opt/cni/bin/calico-ipam /usr/lib/cni/calico-ipam 2>/dev/null || true
+    echo -e "${GREEN}✓ Liens symboliques créés${NC}"
+else
+    echo -e "${GREEN}✓ Liens symboliques Calico OK${NC}"
+fi
 
 # Attendre que les pods calico soient prêts
 kubectl wait --for=condition=Ready pods -l k8s-app=calico-node -n kube-system --timeout=${KUBECTL_WAIT_TIMEOUT} || true

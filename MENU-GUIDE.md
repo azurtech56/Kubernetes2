@@ -13,7 +13,7 @@ cd Kubernetes2/scripts
 
 ```
 ╔════════════════════════════════════════════════════════════════╗
-║  Kubernetes 1.32 - Haute Disponibilité (HA)                   ║
+║  Kubernetes 1.33 - Haute Disponibilité (HA)                   ║
 ║  Menu d'installation et de gestion                            ║
 ╚════════════════════════════════════════════════════════════════╝
 
