@@ -1,7 +1,7 @@
 #!/bin/bash
 ################################################################################
 # Script d'installation du provisioner de stockage local-path
-# Compatible avec: Kubernetes 1.32.2
+# Compatible avec: Kubernetes 1.33.0
 # Auteur: azurtech56
 # Version: 1.0
 ################################################################################

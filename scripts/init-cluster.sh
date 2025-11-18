@@ -68,6 +68,7 @@ CERT_SANS_API="${CERT_SANS_API}\n    - \"${VIP:-192.168.0.200}\""
 
 # Ajouter tous les masters détectés
 master_num=1
+ETCD_ENDPOINTS=""
 while true; do
     ip_var="MASTER${master_num}_IP"
     hostname_var="MASTER${master_num}_HOSTNAME"
@@ -75,13 +76,46 @@ while true; do
     if [ -n "${!ip_var}" ]; then
         CERT_SANS_API="${CERT_SANS_API}\n    - \"${!hostname_var}\""
         CERT_SANS_API="${CERT_SANS_API}\n    - \"${!ip_var}\""
+
+        # Construire les endpoints etcd externes (pour HA)
+        if [ $master_num -gt 1 ]; then
+            ETCD_ENDPOINTS="${ETCD_ENDPOINTS}\n    - \"https://${!ip_var}:2379\""
+        else
+            ETCD_ENDPOINTS="    - \"https://${!ip_var}:2379\""
+        fi
+
         ((master_num++))
     else
         break
     fi
 done
 
+# Compter le nombre de masters pour décider si etcd local ou externe
+MASTER_COUNT=$((master_num - 1))
+
 CERT_SANS_API="${CERT_SANS_API}\n    - \"localhost\"\n    - \"127.0.0.1\"\n    - \"::1\""
+
+# Générer la configuration etcd selon le nombre de masters
+if [ $MASTER_COUNT -eq 1 ]; then
+    # Mode etcd local pour un seul master
+    ETCD_CONFIG="etcd:
+  local:
+    dataDir: \"/var/lib/etcd\""
+else
+    # Mode etcd externe pour HA (3+ masters)
+    # Utiliser les chemins configurables depuis config.sh ou les defaults
+    ETCD_CA="${ETCD_CA_FILE:-/etc/kubernetes/pki/etcd/ca.crt}"
+    ETCD_CERT="${ETCD_CERT_FILE:-/etc/kubernetes/pki/etcd/peer.crt}"
+    ETCD_KEY="${ETCD_KEY_FILE:-/etc/kubernetes/pki/etcd/peer.key}"
+
+    ETCD_CONFIG="etcd:
+  external:
+    endpoints:
+$(echo -e "$ETCD_ENDPOINTS" | sed 's/^/      /')
+    caFile: \"${ETCD_CA}\"
+    certFile: \"${ETCD_CERT}\"
+    keyFile: \"${ETCD_KEY}\""
+fi
 
 # Générer le fichier de configuration
 cat > kubelet-ha.yaml <<EOF
@@ -97,11 +131,7 @@ nodeRegistration:
 ---
 apiVersion: kubeadm.k8s.io/v1beta4
 kind: ClusterConfiguration
-<<<<<<< HEAD
 kubernetesVersion: "${K8S_VERSION:-1.33.0}"
-=======
-kubernetesVersion: "${K8S_VERSION:-v1.33.0}"
->>>>>>> 9ba4bd49354a5c53a3f7b546b5cb7592abe0a53f
 controlPlaneEndpoint: "${VIP_HOSTNAME:-k8s}:${API_SERVER_PORT:-6443}"
 networking:
   podSubnet: "${POD_SUBNET:-11.0.0.0/16}"
@@ -109,9 +139,7 @@ networking:
 apiServer:
   certSANs:
 $(echo -e "$CERT_SANS_API" | sed 's/^/    - /')
-etcd:
-  local:
-    dataDir: "/var/lib/etcd"
+${ETCD_CONFIG}
 controllerManager: {}
 scheduler: {}
 
@@ -127,7 +155,14 @@ echo "  - Hostname: ${FIRST_MASTER_HOSTNAME}"
 echo "  - IP locale: ${LOCAL_IP}"
 echo "  - VIP: ${VIP:-192.168.0.200}"
 echo "  - Kubernetes: ${K8S_VERSION:-1.33.0}"
-echo "  - Masters configurés: $(get_master_count 2>/dev/null || echo '3')"
+echo "  - Masters configurés: ${MASTER_COUNT}"
+if [ $MASTER_COUNT -eq 1 ]; then
+    echo "  - Mode etcd: LOCAL (single master)"
+else
+    echo "  - Mode etcd: EXTERNAL (HA - ${MASTER_COUNT} masters)"
+    echo "  - Endpoints etcd:"
+    echo -e "$ETCD_ENDPOINTS" | sed 's/^/      /'
+fi
 echo ""
 
 echo -e "${YELLOW}[1/4] Initialisation de kubeadm...${NC}"

@@ -29,37 +29,12 @@ nano config.sh
 
 ### 3️⃣ Copier sur les serveurs
 ```bash
-<<<<<<< HEAD
 scp -r . user@192.168.0.201:~/k8s
 scp -r . user@192.168.0.202:~/k8s
 scp -r . user@192.168.0.203:~/k8s
 ```
 
 ### 4️⃣ Installer
-=======
-kubectl get nodes
-# Tous les nœuds doivent être "Ready"
-
-kubectl get pods -A
-# Tous les pods doivent être "Running"
-
-kubectl get storageclass
-# Vérifier que "local-path" est marquée (default)
-```
-
-## 🎉 C'est fait !
-
-Votre cluster Kubernetes HA est opérationnel !
-
-**Composants installés automatiquement** :
-- ✅ Calico CNI (réseau des pods)
-- ✅ local-path-provisioner (stockage persistant)
-
-## ➕ Ajouter les add-ons (optionnel)
-
-**Sur k8s01-1** :
-
->>>>>>> 9ba4bd49354a5c53a3f7b546b5cb7592abe0a53f
 ```bash
 # Sur chaque serveur
 cd ~/k8s
@@ -72,7 +47,13 @@ sudo ./k8s-menu.sh
 ### 5️⃣ Vérifier
 ```bash
 kubectl get nodes -o wide
+# Tous les nœuds doivent être "Ready"
+
 kubectl get pods -A
+# Tous les pods doivent être "Running"
+
+kubectl get storageclass
+# Vérifier que "local-path" est marquée (default)
 ```
 
 ---

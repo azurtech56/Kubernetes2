@@ -60,6 +60,7 @@ show_step_menu() {
     echo -e "${MAGENTA}▶ Cluster${NC}"
     echo -e "${GREEN}[5]${NC}  Initialisation du cluster (init-cluster.sh)"
     echo -e "${GREEN}[6]${NC}  Installation Calico CNI (install-calico.sh)"
+    echo -e "${GREEN}[7]${NC}  Installation Storage Provisioner (install-storage.sh)"
     echo ""
     echo -e "${RED}[0]${NC}  Retour au menu principal"
     echo ""
@@ -632,6 +633,7 @@ main() {
                         4) run_script "./setup-keepalived.sh" ;;
                         5) run_script "./init-cluster.sh" ;;
                         6) run_script_no_sudo "./install-calico.sh" ;;
+                        7) run_script_no_sudo "./install-storage.sh" ;;
                         0) break ;;
                         *)
                             echo -e "${RED}Choix invalide${NC}"

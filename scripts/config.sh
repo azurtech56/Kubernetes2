@@ -164,15 +164,9 @@ export VRRP_ADVERT_INT="1"
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Version de Kubernetes (format: MAJEUR.MINEUR.PATCH)
-<<<<<<< HEAD
 # Exemples: "1.33.0", "1.32.2", "1.31.5", "1.30.8"
 # Note: Le repository utilisera automatiquement MAJEUR.MINEUR (ex: v1.33)
 export K8S_VERSION="1.33.0"
-=======
-# Exemples: "1.32.2", "1.31.5", "1.30.8"
-# Note: Le repository utilisera automatiquement MAJEUR.MINEUR (ex: v1.32)
-export K8S_VERSION="1.33"
->>>>>>> 9ba4bd49354a5c53a3f7b546b5cb7592abe0a53f
 
 # Version du repository (extraite automatiquement de K8S_VERSION)
 # Format: MAJEUR.MINEUR (ex: "1.32" depuis "1.32.2")
@@ -268,6 +262,21 @@ export KUBECTL_WAIT_TIMEOUT_QUICK="90s"
 # Timeout pour les opérations critiques (initialisation cluster, etcd)
 # Recommandé: 600s (10 min) - Peut nécessiter jusqu'à 15 min en environnement très lent
 export KUBECTL_WAIT_TIMEOUT_CRITICAL="600s"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# CONFIGURATION ETCD (Optionnel - pour HA avancé)
+# ═══════════════════════════════════════════════════════════════════════════
+# Ces paramètres sont utilisés pour configurer etcd en mode externe dans kubeadm
+# Pour la plupart des cas, les chemins par défaut suffisent.
+
+# Chemins des certificats etcd (mode externe)
+# Par défaut : /etc/kubernetes/pki/etcd/ca.crt
+export ETCD_CA_FILE="/etc/kubernetes/pki/etcd/ca.crt"
+export ETCD_CERT_FILE="/etc/kubernetes/pki/etcd/peer.crt"
+export ETCD_KEY_FILE="/etc/kubernetes/pki/etcd/peer.key"
+
+# Port etcd (défaut: 2379)
+export ETCD_CLIENT_PORT="2379"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # FONCTIONS UTILITAIRES

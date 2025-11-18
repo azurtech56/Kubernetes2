@@ -1,0 +1,394 @@
+================================================================================
+          CONFIGURATION ETCD POUR HA - Kubernetes 1.33
+          Variabilisation et modes dynamiques
+================================================================================
+
+HISTORIQUE DES CHANGEMENTS:
+
+Avant (version 1.0):
+  - Configuration etcd statique et locale (etcd: local:)
+  - Approprié uniquement pour single-master
+  - Pas de support natif pour multi-master HA
+
+Après (version 1.1):
+  - Configuration dynamique selon le nombre de masters
+  - Support auto du mode LOCAL (1 master)
+  - Support auto du mode EXTERNAL (3+ masters HA)
+  - Endpoints etcd variabilisés
+  - Certificats configurables via config.sh
+
+================================================================================
+                         MODES DE CONFIGURATION
+================================================================================
+
+1. MODE LOCAL (Single Master)
+   ─────────────────────────────────────────────────────────────────────────
+
+   Utilisé quand: MASTER_COUNT = 1
+   Configuration générée:
+
+   etcd:
+     local:
+       dataDir: "/var/lib/etcd"
+
+   Avantages:
+   ✓ Simple et automatique
+   ✓ Etcd embarqué sur le premier master
+   ✓ Pas de configuration supplémentaire nécessaire
+
+   Limitations:
+   ✗ Pas de HA réelle
+   ✗ Données non répliquées
+   ✗ Point unique de défaillance
+
+
+2. MODE EXTERNAL (HA - Multi Master)
+   ─────────────────────────────────────────────────────────────────────────
+
+   Utilisé quand: MASTER_COUNT >= 3
+   Configuration générée:
+
+   etcd:
+     external:
+       endpoints:
+         - "https://192.168.10.30:2379"
+         - "https://192.168.10.31:2379"
+         - "https://192.168.10.32:2379"
+       caFile: "/etc/kubernetes/pki/etcd/ca.crt"
+       certFile: "/etc/kubernetes/pki/etcd/peer.crt"
+       keyFile: "/etc/kubernetes/pki/etcd/peer.key"
+
+   Avantages:
+   ✓ Vrai HA avec réplication des données
+   ✓ Tolérance aux pannes (consensus quorum)
+   ✓ Endpoints générés automatiquement
+
+   Prérequis:
+   • 3+ masters configurés dans config.sh
+   • kubeadm crée etcd automatiquement en stacked mode
+   • Les certificats etcd sont générés par kubeadm
+
+================================================================================
+                      CONFIGURATION AUTOMATIQUE
+================================================================================
+
+DÉTECTION DU NOMBRE DE MASTERS:
+
+Le script init-cluster.sh détecte automatiquement le nombre de masters en
+itérant sur les variables MASTER1_IP, MASTER2_IP, etc. depuis config.sh.
+
+Exemple:
+  ┌─────────────────────────────────────────────────────────────────┐
+  │ scripts/config.sh                                               │
+  │                                                                 │
+  │ export MASTER1_IP="192.168.10.30"                              │
+  │ export MASTER1_HOSTNAME="k8s-master"                           │
+  │                                                                 │
+  │ export MASTER2_IP="192.168.10.31"                              │
+  │ export MASTER2_HOSTNAME="k8s-worker-1"  # (sera master)        │
+  │                                                                 │
+  │ export MASTER3_IP="192.168.10.32"                              │
+  │ export MASTER3_HOSTNAME="k8s-worker-2"  # (sera master)        │
+  └─────────────────────────────────────────────────────────────────┘
+
+Résultat: MASTER_COUNT=3 → Mode EXTERNAL activé
+
+
+GÉNÉRATION DES ENDPOINTS ETCD:
+
+Boucle dans init-cluster.sh (lignes 72-91):
+
+  for each MASTER*_IP found in config.sh:
+    ETCD_ENDPOINTS += "https://<IP>:2379"
+
+Les endpoints sont construits dynamiquement et affichés lors du démarrage:
+
+  Endpoints etcd:
+    - "https://192.168.10.30:2379"
+    - "https://192.168.10.31:2379"
+    - "https://192.168.10.32:2379"
+
+================================================================================
+                    VARIABLES CONFIGURABLES
+================================================================================
+
+Fichier: scripts/config.sh (lignes 266-279)
+
+# Chemins des certificats etcd (mode externe)
+export ETCD_CA_FILE="/etc/kubernetes/pki/etcd/ca.crt"
+export ETCD_CERT_FILE="/etc/kubernetes/pki/etcd/peer.crt"
+export ETCD_KEY_FILE="/etc/kubernetes/pki/etcd/peer.key"
+
+# Port etcd (défaut: 2379)
+export ETCD_CLIENT_PORT="2379"
+
+
+UTILISATION:
+
+Par défaut, les chemins standard sont utilisés. Pour personnaliser:
+
+  # Avant de lancer init-cluster.sh, éditer config.sh:
+  nano config.sh
+
+  # Modifier les chemins si nécessaire:
+  export ETCD_CA_FILE="/custom/path/ca.crt"
+  export ETCD_CERT_FILE="/custom/path/peer.crt"
+  export ETCD_KEY_FILE="/custom/path/peer.key"
+
+  # Puis lancer:
+  ./init-cluster.sh
+
+================================================================================
+                        DÉTAILS DE IMPLÉMENTION
+================================================================================
+
+FICHIER: scripts/init-cluster.sh
+
+Sections modifiées:
+
+1. DÉTECTION (lignes 70-94):
+   ───────────────────────────
+   - Boucle sur MASTER*_IP et MASTER*_HOSTNAME
+   - Construction de ETCD_ENDPOINTS
+   - Comptage de MASTER_COUNT
+
+2. SÉLECTION MODE (lignes 98-118):
+   ────────────────────────────────
+   if [ $MASTER_COUNT -eq 1 ]; then
+       # Mode LOCAL
+   else
+       # Mode EXTERNAL (MASTER_COUNT >= 3)
+   fi
+
+3. AFFICHAGE (lignes 148-161):
+   ────────────────────────
+   - Affiche le nombre de masters
+   - Affiche le mode etcd détecté
+   - Liste les endpoints etcd (si mode EXTERNAL)
+
+4. GÉNÉRATION YAML (lignes 121-145):
+   ──────────────────────────────────
+   - Insère ${ETCD_CONFIG} dans kubelet-ha.yaml
+   - ETCD_CONFIG contient soit la config LOCAL soit EXTERNAL
+
+================================================================================
+                           FLUX D'EXÉCUTION
+================================================================================
+
+./k8s-menu.sh [3] Initialiser le cluster
+     ↓
+./init-cluster.sh
+     ↓
+├─→ Charge config.sh (ligne 32)
+│    - Récupère MASTER1_IP, MASTER2_IP, etc.
+│    - Récupère ETCD_*_FILE
+│
+├─→ Détecte le nombre de masters (lignes 70-94)
+│    - Compte les MASTER*_IP définis
+│    - Construit ETCD_ENDPOINTS
+│    - Calcule MASTER_COUNT
+│
+├─→ Sélectionne le mode etcd (lignes 98-118)
+│    if MASTER_COUNT == 1:
+│       ETCD_CONFIG = "etcd: local:..."
+│    else:
+│       ETCD_CONFIG = "etcd: external: endpoints:..."
+│
+├─→ Affiche le résumé (lignes 148-161)
+│    "Mode etcd: EXTERNAL (HA - 3 masters)"
+│    "Endpoints etcd: ..."
+│
+├─→ Génère kubelet-ha.yaml (lignes 121-145)
+│    - InsertETCD_CONFIG dans la section ClusterConfiguration
+│    - Sauvegarde dans kubelet-ha.yaml
+│
+└─→ Exécute kubeadm init (ligne 164)
+     kubeadm init --config kubelet-ha.yaml --upload-certs
+
+================================================================================
+                           EXEMPLES PRATIQUES
+================================================================================
+
+EXEMPLE 1: Single Master (DEV/TEST)
+─────────────────────────────────────
+
+config.sh:
+  export MASTER1_IP="192.168.10.30"
+  export MASTER1_HOSTNAME="k8s-master"
+  # (MASTER2_IP, MASTER3_IP non définis)
+
+Résultat:
+  MASTER_COUNT = 1
+  Mode etcd: LOCAL
+  kubelet-ha.yaml contient:
+    etcd:
+      local:
+        dataDir: "/var/lib/etcd"
+
+
+EXEMPLE 2: 3 Masters HA (PRODUCTION)
+──────────────────────────────────────
+
+config.sh:
+  export MASTER1_IP="192.168.10.30"
+  export MASTER1_HOSTNAME="k8s-master"
+  export MASTER2_IP="192.168.10.31"
+  export MASTER2_HOSTNAME="k8s-worker-1"
+  export MASTER3_IP="192.168.10.32"
+  export MASTER3_HOSTNAME="k8s-worker-2"
+
+Résultat:
+  MASTER_COUNT = 3
+  Mode etcd: EXTERNAL (HA - 3 masters)
+  ETCD_ENDPOINTS:
+    - "https://192.168.10.30:2379"
+    - "https://192.168.10.31:2379"
+    - "https://192.168.10.32:2379"
+  kubelet-ha.yaml contient:
+    etcd:
+      external:
+        endpoints:
+          - "https://192.168.10.30:2379"
+          - "https://192.168.10.31:2379"
+          - "https://192.168.10.32:2379"
+        caFile: "/etc/kubernetes/pki/etcd/ca.crt"
+        certFile: "/etc/kubernetes/pki/etcd/peer.crt"
+        keyFile: "/etc/kubernetes/pki/etcd/peer.key"
+
+================================================================================
+                      STACKED VS EXTERNAL ETCD
+================================================================================
+
+STACKED ETCD (kubeadm par défaut pour HA):
+──────────────────────────────────────────
+
+kubelet-ha.yaml spécifie: etcd: external:
+Mais kubeadm init --upload-certs:
+
+ ✓ Crée automatiquement etcd sur tous les masters (stacked)
+ ✓ Certains fichiers dans /etc/kubernetes/manifests/
+ ✓ Certificats générés automatiquement
+ ✓ Replication entre les masters
+
+Cela est différent d'une configuration "external etcd" traditionnelle où
+etcd s'exécute en dehors de Kubernetes.
+
+
+CE QUE FAIT KUBEADM AVEC NOTRE CONFIG:
+───────────────────────────────────────
+
+1. À l'exécution sur le PREMIER master:
+   - Lit kubelet-ha.yaml
+   - Crée le control plane avec API server
+   - Crée etcd (stacked) sur ce master
+   - Les certificats etcd sont créés automatiquement
+
+2. À l'ajout des AUTRES masters (kubeadm join):
+   - Rejoint le cluster API (via --control-plane --certificate-key)
+   - kubeadm détecte la présence d'une etcd externe
+   - Se connecte à l'etcd existant sur le premier master
+   - Promeut en master avec sa propre instance etcd stacked
+   - etcd se réplique automatiquement entre les instances
+
+Résultat: Trois instances etcd indépendantes qui se répliquent
+         (consensus Raft avec quorum: 3/3 = 100%)
+
+================================================================================
+                          POINTS IMPORTANTS
+================================================================================
+
+1. ORDRE D'EXÉCUTION:
+   - init-cluster.sh DOIT être exécuté sur le PREMIER master
+   - Les autres masters rejoignent via kubeadm join
+   - Les endpoints etcd sont créés au moment du kubeadm join
+
+2. CERTIFICATS ETCD:
+   - Générés automatiquement par kubeadm
+   - Les chemins spécifiés dans kubelet-ha.yaml doivent être valides
+   - Utilisé pour la communication entre instances etcd
+
+3. RÉPLICATION ETCD:
+   - Nécessite la communication entre les masters sur le port 2379 (client)
+   - Nécessite aussi le port 2380 (peer communication)
+   - Le VIP keepalived n'affecte pas etcd (etcd utilise les IPs réelles)
+
+4. FAILOVER:
+   - Si un master s'arrête: etcd continue avec 2/3 members (consensus OK)
+   - Si deux masters s'arrêtent: etcd perd le quorum (cluster stuck)
+   - Si trois masters s'arrêtent: tout est down
+
+================================================================================
+                            VÉRIFICATIONS
+================================================================================
+
+Vérifier la configuration etcd après déploiement:
+
+# Sur un master, vérifier les pods etcd:
+kubectl get pods -n kube-system | grep etcd
+
+# Voir les statut des membres etcd:
+kubectl exec -it -n kube-system etcd-k8s-master -- \
+  etcdctl --endpoints=https://127.0.0.1:2379 \
+          --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+          --cert=/etc/kubernetes/pki/etcd/peer.crt \
+          --key=/etc/kubernetes/pki/etcd/peer.key \
+          member list
+
+# Vérifier la santé etcd:
+kubectl exec -it -n kube-system etcd-k8s-master -- \
+  etcdctl --endpoints=https://127.0.0.1:2379 \
+          --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+          --cert=/etc/kubernetes/pki/etcd/peer.crt \
+          --key=/etc/kubernetes/pki/etcd/peer.key \
+          endpoint health
+
+================================================================================
+                        DÉPANNAGE COURANT
+================================================================================
+
+PROBLÈME: "etcd endpoints not available"
+──────────────────────────────────────────
+Cause: Endpoints etcd mal générés
+Solution:
+  1. Vérifier config.sh: MASTER1_IP, MASTER2_IP, MASTER3_IP définies
+  2. Exécuter: grep "MASTER.*_IP" scripts/config.sh
+  3. S'assurer qu'il y a au moins 1 master
+
+PROBLÈME: "etcd: no quorum"
+─────────────────────────────
+Cause: Moins de 3/3 masters disponibles
+Solution:
+  1. Vérifier tous les masters sont up: kubectl get nodes
+  2. Vérifier etcd: kubectl get pods -n kube-system | grep etcd
+  3. Redémarrer les masters si nécessaire
+
+PROBLÈME: "certificate signed by unknown authority"
+──────────────────────────────────────────────────────
+Cause: Certificats etcd mal générés ou chemins incorrects
+Solution:
+  1. Vérifier les chemins ETCD_*_FILE dans config.sh
+  2. Vérifier les fichiers existent: ls -la /etc/kubernetes/pki/etcd/
+  3. Regénérer les certificats si nécessaire
+
+================================================================================
+                           VERSION HISTORY
+================================================================================
+
+v1.0 (initial):
+  - Configuration etcd: local uniquement
+  - Support single-master
+
+v1.1 (variabilisation):
+  - Configuration dynamique (LOCAL ou EXTERNAL)
+  - Détection automatique du nombre de masters
+  - Support multi-master HA
+  - Endpoints etcd variabilisés
+  - Certificats configurables
+
+================================================================================
+
+Document généré: 2025-11-18
+Script: scripts/init-cluster.sh
+Config: scripts/config.sh
+
+================================================================================

@@ -383,7 +383,7 @@ cp scripts/config.sh.backup scripts/config.sh
 - [README.md](README.md) - Documentation principale
 - [config.sh](scripts/config.sh) - Fichier de configuration
 - [DEBIAN-COMPATIBILITY.md](DEBIAN-COMPATIBILITY.md) - Guide Debian
-- [Installation Kubernetes 1.32.txt](Installation%20Kubernetes%201.32.txt) - Guide détaillé
+- [docs/Installation Kubernetes 1.32.txt](docs/Installation%20Kubernetes%201.32.txt) - Guide détaillé
 
 ---
 
