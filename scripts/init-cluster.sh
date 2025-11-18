@@ -104,9 +104,10 @@ networking:
   serviceSubnet: "${SERVICE_SUBNET:-10.0.0.0/16}"
 apiServer:
   certSANs:
-$(echo -e "$CERT_SANS_API")
+$(echo -e "$CERT_SANS_API" | sed 's/^/    - /')
 etcd:
-  external: {}
+  local:
+    dataDir: "/var/lib/etcd"
 controllerManager: {}
 scheduler: {}
 
