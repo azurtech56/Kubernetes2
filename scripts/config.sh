@@ -145,13 +145,67 @@ export METALLB_IP_END="192.168.10.240"
 export METALLB_IP_RANGE="${METALLB_IP_START}-${METALLB_IP_END}"
 
 # ═══════════════════════════════════════════════════════════════════════════
+# CHARGEMENT DES SECRETS DEPUIS .env
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Les mots de passe et secrets sensibles sont stockés dans le fichier .env
+# Ce fichier n'est PAS versionné dans Git pour des raisons de sécurité
+#
+# Pour créer le fichier .env :
+#   1. Automatique (recommandé) : ./generate-env.sh
+#   2. Manuel : cp .env.example .env && nano .env
+
+SCRIPT_DIR_CONFIG="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_FILE="$SCRIPT_DIR_CONFIG/.env"
+
+if [ ! -f "$ENV_FILE" ]; then
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║  ⚠️  ERREUR: Fichier .env manquant                           ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "Le fichier .env contient les mots de passe et secrets."
+    echo ""
+    echo "PREMIÈRE INSTALLATION:"
+    echo "  1. Générer automatiquement (RECOMMANDÉ):"
+    echo "     cd $SCRIPT_DIR_CONFIG"
+    echo "     ./generate-env.sh"
+    echo ""
+    echo "  2. OU copier le template manuellement:"
+    echo "     cp $SCRIPT_DIR_CONFIG/.env.example $SCRIPT_DIR_CONFIG/.env"
+    echo "     nano $SCRIPT_DIR_CONFIG/.env"
+    echo "     # Remplacez tous les 'CHANGEME' par vos mots de passe"
+    echo ""
+    exit 1
+fi
+
+# Charger les secrets depuis .env
+source "$ENV_FILE"
+
+# Valider que les mots de passe ont été changés
+if [ "${VRRP_PASSWORD:-CHANGEME}" = "CHANGEME" ] || \
+   [ "${RANCHER_PASSWORD:-CHANGEME}" = "CHANGEME" ] || \
+   [ "${GRAFANA_PASSWORD:-CHANGEME}" = "CHANGEME" ]; then
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║  ⚠️  ERREUR: Mots de passe non configurés                    ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "Certains mots de passe sont encore 'CHANGEME' dans .env"
+    echo ""
+    echo "SOLUTION:"
+    echo "  1. Exécutez: ./generate-env.sh"
+    echo "  2. OU éditez manuellement: nano $ENV_FILE"
+    echo ""
+    exit 1
+fi
+
+# ═══════════════════════════════════════════════════════════════════════════
 # CONFIGURATION KEEPALIVED
 # ═══════════════════════════════════════════════════════════════════════════
 
-# ⚠️ SÉCURITÉ: Mot de passe VRRP (8 caractères max recommandé)
-# ⚠️ CHANGEZ CE MOT DE PASSE AVANT TOUTE UTILISATION EN PRODUCTION !
-# Pour générer un mot de passe fort: generate_secure_password 8
-export VRRP_PASSWORD="K8s_HA_Pass"
+# ⚠️ SÉCURITÉ: Mot de passe VRRP chargé depuis .env
+# Note: Le mot de passe VRRP est limité à 8 caractères max par keepalived
 
 # ID du routeur virtuel (doit être unique sur le réseau)
 export VRRP_ROUTER_ID="51"
@@ -192,10 +246,8 @@ export CRI_SOCKET="/var/run/containerd/containerd.sock"
 export RANCHER_SUBDOMAIN="rancher"
 export RANCHER_HOSTNAME="${RANCHER_SUBDOMAIN}.${DOMAIN_NAME}"
 
-# ⚠️ SÉCURITÉ: Mot de passe bootstrap Rancher
-# ⚠️ CHANGEZ CE MOT DE PASSE AVANT TOUTE UTILISATION EN PRODUCTION !
-# Pour générer un mot de passe fort: generate_secure_password 16
-export RANCHER_PASSWORD="admin"
+# ⚠️ SÉCURITÉ: Mot de passe Rancher chargé depuis .env
+# Le mot de passe RANCHER_PASSWORD est défini dans le fichier .env
 
 # Source TLS (rancher, letsEncrypt, secret)
 export RANCHER_TLS_SOURCE="rancher"
@@ -204,10 +256,8 @@ export RANCHER_TLS_SOURCE="rancher"
 # CONFIGURATION MONITORING
 # ═══════════════════════════════════════════════════════════════════════════
 
-# ⚠️ SÉCURITÉ: Mot de passe Grafana admin
-# ⚠️ CHANGEZ CE MOT DE PASSE AVANT TOUTE UTILISATION EN PRODUCTION !
-# Pour générer un mot de passe fort: generate_secure_password 16
-export GRAFANA_PASSWORD="prom-operator"
+# ⚠️ SÉCURITÉ: Mot de passe Grafana chargé depuis .env
+# Le mot de passe GRAFANA_PASSWORD est défini dans le fichier .env
 
 # Namespace pour le monitoring
 export MONITORING_NAMESPACE="monitoring"

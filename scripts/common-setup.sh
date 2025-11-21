@@ -3,7 +3,7 @@
 # Script de préparation commune pour tous les nœuds Kubernetes
 # Compatible avec: Ubuntu 20.04/22.04/24.04 - Debian 12/13
 # Auteur: azurtech56
-# Version: 1.0
+# Version: 2.0 - Idempotent
 ################################################################################
 
 set -e
@@ -27,6 +27,41 @@ fi
 
 # Charger la configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Charger les bibliothèques
+if [ -f "$SCRIPT_DIR/lib/logging.sh" ]; then
+    source "$SCRIPT_DIR/lib/logging.sh"
+    init_logging
+fi
+
+if [ -f "$SCRIPT_DIR/lib/idempotent.sh" ]; then
+    source "$SCRIPT_DIR/lib/idempotent.sh"
+    init_idempotent
+else
+    echo -e "${YELLOW}⚠ Bibliothèque d'idempotence non trouvée - Mode standard${NC}"
+fi
+
+# Charger bibliothèques v2.1
+if [ -f "$SCRIPT_DIR/lib/performance.sh" ]; then
+    source "$SCRIPT_DIR/lib/performance.sh"
+    init_cache
+    start_timer "common_setup"
+fi
+
+if [ -f "$SCRIPT_DIR/lib/error-codes.sh" ]; then
+    source "$SCRIPT_DIR/lib/error-codes.sh"
+fi
+
+if [ -f "$SCRIPT_DIR/lib/dry-run.sh" ]; then
+    source "$SCRIPT_DIR/lib/dry-run.sh"
+    init_dry_run
+fi
+
+if [ -f "$SCRIPT_DIR/lib/notifications.sh" ]; then
+    source "$SCRIPT_DIR/lib/notifications.sh"
+    notify_install_start "Configuration commune"
+fi
+
 if [ -f "$SCRIPT_DIR/config.sh" ]; then
     echo -e "${BLUE}Chargement de la configuration depuis config.sh...${NC}"
     source "$SCRIPT_DIR/config.sh"
@@ -41,9 +76,13 @@ echo -e "${BLUE}Repository Kubernetes: v${K8S_REPO_VERSION}${NC}"
 echo ""
 
 echo -e "${YELLOW}[1/8] Désactivation du swap...${NC}"
-swapoff -a
-sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
-echo -e "${GREEN}✓ Swap désactivé${NC}"
+if type -t setup_swap_idempotent &>/dev/null; then
+    setup_swap_idempotent
+else
+    swapoff -a
+    sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+    echo -e "${GREEN}✓ Swap désactivé${NC}"
+fi
 
 echo -e "${YELLOW}[2/8] Mise à jour du système et installation des dépendances...${NC}"
 apt update
@@ -76,24 +115,30 @@ echo -e "${GREEN}✓ Système mis à jour et dépendances installées${NC}"
 echo -e "${BLUE}  Paquets: curl, gnupg, ufw, iproute2, openssh-client, net-tools${NC}"
 
 echo -e "${YELLOW}[3/8] Chargement des modules kernel...${NC}"
-cat <<EOF | tee /etc/modules-load.d/containerd.conf
+if type -t setup_kernel_modules_idempotent &>/dev/null; then
+    setup_kernel_modules_idempotent "overlay" "br_netfilter"
+else
+    cat <<EOF | tee /etc/modules-load.d/containerd.conf
 overlay
 br_netfilter
 EOF
-
-modprobe overlay
-modprobe br_netfilter
-echo -e "${GREEN}✓ Modules kernel chargés${NC}"
+    modprobe overlay
+    modprobe br_netfilter
+    echo -e "${GREEN}✓ Modules kernel chargés${NC}"
+fi
 
 echo -e "${YELLOW}[4/8] Configuration sysctl...${NC}"
-cat <<EOF | tee /etc/sysctl.d/99-kubernetes-k8s.conf
+if type -t setup_sysctl_idempotent &>/dev/null; then
+    setup_sysctl_idempotent
+else
+    cat <<EOF | tee /etc/sysctl.d/99-kubernetes-k8s.conf
 net.bridge.bridge-nf-call-iptables = 1
 net.ipv4.ip_forward = 1
 net.bridge.bridge-nf-call-ip6tables = 1
 EOF
-
-sysctl --system > /dev/null 2>&1
-echo -e "${GREEN}✓ sysctl configuré${NC}"
+    sysctl --system > /dev/null 2>&1
+    echo -e "${GREEN}✓ sysctl configuré${NC}"
+fi
 
 echo -e "${YELLOW}[5/8] Installation de containerd...${NC}"
 apt install -y containerd
@@ -143,3 +188,17 @@ echo ""
 echo -e "${YELLOW}Prochaines étapes:${NC}"
 echo "  - Pour un master: exécutez master-setup.sh"
 echo "  - Pour un worker: exécutez worker-setup.sh"
+
+# === v2.1 Performance & Notifications ===
+if type -t stop_timer &>/dev/null; then
+    stop_timer "common_setup"
+fi
+
+if type -t notify_install_success &>/dev/null; then
+    notify_install_success "Configuration commune"
+fi
+
+if type -t dry_run_summary &>/dev/null; then
+    dry_run_summary
+fi
+# === Fin v2.1 ===
