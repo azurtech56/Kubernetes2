@@ -207,11 +207,11 @@ echo -e "${BLUE}========================================${NC}" >> join-commands.
 echo "" >> join-commands.txt
 
 echo "# Pour ajouter les AUTRES MASTERS au cluster:" >> join-commands.txt
-grep -A 2 "kubeadm join" kubeadm-init.log | head -n 3 >> join-commands.txt || echo "Commande non trouvée" >> join-commands.txt
+grep -A 3 "kubeadm join" kubeadm-init.log | grep "control-plane" | head -n 3 >> join-commands.txt || echo "Commande non trouvée" >> join-commands.txt
 echo "" >> join-commands.txt
 
 echo "# Pour ajouter un WORKER:" >> join-commands.txt
-grep "kubeadm join" kubeadm-init.log | grep -v "control-plane" | tail -n 2 >> join-commands.txt || echo "Commande non trouvée" >> join-commands.txt
+grep -A 3 "kubeadm join" kubeadm-init.log | grep -v "control-plane" | head -n 3 >> join-commands.txt || echo "Commande non trouvée" >> join-commands.txt
 
 echo -e "${GREEN}✓ Commandes sauvegardées dans join-commands.txt${NC}"
 
