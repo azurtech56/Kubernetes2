@@ -138,7 +138,7 @@ networking:
   serviceSubnet: "${SERVICE_SUBNET:-10.0.0.0/16}"
 apiServer:
   certSANs:
-$(printf '%s\n' "$CERT_SANS_API" | sed 's/^/    /')
+$(printf '%b' "$CERT_SANS_API")
 ${ETCD_CONFIG}
 controllerManager: {}
 scheduler: {}
