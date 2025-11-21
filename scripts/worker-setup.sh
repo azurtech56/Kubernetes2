@@ -66,6 +66,9 @@ echo -e "${YELLOW}[1/1] Configuration du firewall pour Worker...${NC}"
 echo "  Réseau nœuds: ${CLUSTER_NODES_NETWORK}"
 echo "  Réseau pods: ${POD_NETWORK}"
 
+# Temporairement désactiver set -e pour les commandes UFW
+set +e
+
 if type -t setup_ufw_rule_idempotent &>/dev/null; then
     # Mode idempotent
     setup_ufw_rule_idempotent 22 tcp "SSH"
@@ -80,7 +83,7 @@ if type -t setup_ufw_rule_idempotent &>/dev/null; then
     setup_ufw_network_rule_idempotent "${CLUSTER_NODES_NETWORK}" "from"
     enable_ufw_idempotent
 else
-    # Mode standard
+    # Mode standard (fallback si lib-idempotent non disponible)
     ufw allow 22/tcp            # SSH (IMPORTANT!)
     ufw allow 80/tcp            # HTTP (LoadBalancer - Rancher, Grafana)
     ufw allow 443/tcp           # HTTPS (LoadBalancer - Rancher, Grafana)
@@ -95,6 +98,9 @@ else
     ufw reload
     echo -e "${GREEN}✓ Firewall configuré pour Worker${NC}"
 fi
+
+# Réactiver set -e pour les commandes suivantes
+set -e
 
 echo ""
 echo -e "${GREEN}========================================${NC}"
