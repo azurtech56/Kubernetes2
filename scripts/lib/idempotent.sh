@@ -194,6 +194,12 @@ setup_ufw_rule_idempotent() {
     local description=$3
     local source=${4:-""}
 
+    # Vérifier si UFW est disponible
+    if ! command -v ufw &> /dev/null; then
+        echo "  ⚠️  UFW: Non installé (en attente d'installation système)"
+        return 0
+    fi
+
     local rule_signature
     if [ -n "$source" ]; then
         rule_signature="ufw_${port}_${proto}_from_${source}"
@@ -204,13 +210,13 @@ setup_ufw_rule_idempotent() {
 
     # Vérifier si la règle existe déjà dans UFW
     if [ -n "$source" ]; then
-        if ufw status | grep -qE "${port}/${proto}.*${source}"; then
+        if ufw status 2>/dev/null | grep -qE "${port}/${proto}.*${source}"; then
             echo "  ⏭️  UFW: $description (règle déjà présente)"
             mark_operation_completed "$rule_signature"
             return 0
         fi
     else
-        if ufw status | grep -qE "^${port}/${proto}.*ALLOW"; then
+        if ufw status 2>/dev/null | grep -qE "^${port}/${proto}.*ALLOW"; then
             echo "  ⏭️  UFW: $description (règle déjà présente)"
             mark_operation_completed "$rule_signature"
             return 0
@@ -225,9 +231,15 @@ setup_ufw_rule_idempotent() {
     echo "  🔄 UFW: Ajout règle $description..."
 
     if [ -n "$source" ]; then
-        ufw allow from "$source" to any port "$port" proto "$proto"
+        ufw allow from "$source" to any port "$port" proto "$proto" 2>/dev/null || {
+            echo "  ⚠️  UFW: Règle $description (requiert activation UFW)"
+            return 0
+        }
     else
-        ufw allow "$port/$proto"
+        ufw allow "$port/$proto" 2>/dev/null || {
+            echo "  ⚠️  UFW: Règle $description (requiert activation UFW)"
+            return 0
+        }
     fi
 
     mark_operation_completed "$rule_signature"
@@ -240,11 +252,17 @@ setup_ufw_network_rule_idempotent() {
     local network=$1
     local direction=$2  # "from" ou "to"
 
+    # Vérifier si UFW est disponible
+    if ! command -v ufw &> /dev/null; then
+        echo "  ⚠️  UFW: Non installé (réseau $network - $direction)"
+        return 0
+    fi
+
     local rule_signature="ufw_network_${direction}_${network}"
     rule_signature="${rule_signature//\//_}"  # Remplacer / par _
 
     # Vérifier si la règle existe déjà
-    if ufw status | grep -qE "ALLOW.*${direction}.*${network}"; then
+    if ufw status 2>/dev/null | grep -qE "ALLOW.*${direction}.*${network}"; then
         echo "  ⏭️  UFW: Réseau $network ($direction) (règle déjà présente)"
         mark_operation_completed "$rule_signature"
         return 0
@@ -257,7 +275,10 @@ setup_ufw_network_rule_idempotent() {
 
     echo "  🔄 UFW: Autorisation réseau $network ($direction)..."
 
-    ufw allow "$direction" "$network"
+    ufw allow "$direction" "$network" 2>/dev/null || {
+        echo "  ⚠️  UFW: Réseau $network ($direction) (requiert activation UFW)"
+        return 0
+    }
 
     mark_operation_completed "$rule_signature"
     echo "  ✓ UFW: Réseau $network ($direction) configuré"
@@ -267,8 +288,14 @@ setup_ufw_network_rule_idempotent() {
 setup_ufw_vrrp_idempotent() {
     local operation="ufw_vrrp_configured"
 
+    # Vérifier si UFW est disponible
+    if ! command -v ufw &> /dev/null; then
+        echo "  ⚠️  UFW: Non installé (VRRP)"
+        return 0
+    fi
+
     # Vérifier si la règle existe déjà
-    if ufw status | grep -qE "ALLOW.*vrrp"; then
+    if ufw status 2>/dev/null | grep -qE "ALLOW.*vrrp"; then
         echo "  ⏭️  UFW: VRRP (règle déjà présente)"
         mark_operation_completed "$operation"
         return 0
@@ -281,7 +308,10 @@ setup_ufw_vrrp_idempotent() {
 
     echo "  🔄 UFW: Autorisation VRRP..."
 
-    ufw allow from any to any proto vrrp
+    ufw allow from any to any proto vrrp 2>/dev/null || {
+        echo "  ⚠️  UFW: VRRP (requiert activation UFW)"
+        return 0
+    }
 
     mark_operation_completed "$operation"
     echo "  ✓ UFW: VRRP configuré"
@@ -291,8 +321,14 @@ setup_ufw_vrrp_idempotent() {
 enable_ufw_idempotent() {
     local operation="ufw_enabled"
 
+    # Vérifier si UFW est disponible
+    if ! command -v ufw &> /dev/null; then
+        echo "  ⚠️  UFW: Non installé (en attente d'installation système)"
+        return 0
+    fi
+
     # Vérifier si UFW est déjà actif
-    if ufw status | grep -q "Status: active"; then
+    if ufw status 2>/dev/null | grep -q "Status: active"; then
         echo "  ⏭️  UFW déjà actif"
         mark_operation_completed "$operation"
         return 0
@@ -300,14 +336,17 @@ enable_ufw_idempotent() {
 
     if operation_completed "$operation"; then
         echo "  ⏭️  UFW activé (déjà fait)"
-        ufw --force enable
+        ufw --force enable 2>/dev/null || true
         return 0
     fi
 
     echo "  🔄 Activation de UFW..."
 
-    ufw --force enable
-    ufw reload
+    ufw --force enable 2>/dev/null || {
+        echo "  ⚠️  UFW: Activation requiert les droits root"
+        return 0
+    }
+    ufw reload 2>/dev/null || true
 
     mark_operation_completed "$operation"
     echo "  ✓ UFW activé"
