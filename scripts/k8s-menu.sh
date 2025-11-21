@@ -6,7 +6,9 @@
 # Version: 1.0
 ################################################################################
 
-# Couleurs
+# ============================================================================
+# COULEURS
+# ============================================================================
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -16,13 +18,145 @@ MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 BOLD='\033[1m'
 
+# ============================================================================
+# CONSTANTES DE MENU - Magic numbers éliminés
+# ============================================================================
+readonly MENU_INSTALL_WIZARD=1
+readonly MENU_STEP_BY_STEP=2
+readonly MENU_ADDONS=3
+readonly MENU_MANAGEMENT=4
+readonly MENU_DIAGNOSTICS=5
+readonly MENU_HELP=6
+readonly MENU_EXIT=0
+
+# Sous-menus - Installation par étapes
+readonly MENU_STEP_COMMON=1
+readonly MENU_STEP_MASTER=2
+readonly MENU_STEP_WORKER=3
+readonly MENU_STEP_KEEPALIVED=4
+readonly MENU_STEP_INIT_CLUSTER=5
+readonly MENU_STEP_CALICO=6
+readonly MENU_STEP_STORAGE=7
+
+# Sous-menus - Add-ons
+readonly MENU_ADDON_METALLB=1
+readonly MENU_ADDON_RANCHER=2
+readonly MENU_ADDON_MONITORING=3
+readonly MENU_ADDON_ALL=4
+
+# ============================================================================
+# CHARGEMENT CONFIGURATION CENTRALISÉE
+# ============================================================================
 # Charger la configuration globalement une seule fois
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Charger lib-config si disponible (optionnel - pour validation)
+if [ -f "$SCRIPT_DIR/lib-config.sh" ]; then
+    source "$SCRIPT_DIR/lib-config.sh" 2>/dev/null
+fi
+
+# Charger la configuration
 if [ -f "./config.sh" ]; then
     source "./config.sh"
-    K8S_DISPLAY_VERSION="${K8S_VERSION:-1.32}"
+    K8S_DISPLAY_VERSION="${K8S_VERSION:-1.33}"
 else
-    K8S_DISPLAY_VERSION="1.32"
+    K8S_DISPLAY_VERSION="1.33"
 fi
+
+# ============================================================================
+# MENU HELPERS - Fonctions utilitaires pour affichage
+# ============================================================================
+
+# Obtenir une entrée utilisateur validée pour menu
+get_menu_choice() {
+    local min=$1
+    local max=$2
+    local prompt="${3:-Votre choix: }"
+
+    while true; do
+        echo -ne "${YELLOW}${prompt}${NC}"
+        read choice
+
+        # Vérifier que c'est un nombre
+        if ! [[ "$choice" =~ ^[0-9]+$ ]]; then
+            echo -e "${RED}✗ Erreur: Entrez un nombre${NC}"
+            sleep 1
+            continue
+        fi
+
+        # Vérifier la plage
+        if [ "$choice" -lt "$min" ] || [ "$choice" -gt "$max" ]; then
+            echo -e "${RED}✗ Erreur: Entrez un nombre entre ${min} et ${max}${NC}"
+            sleep 1
+            continue
+        fi
+
+        echo "$choice"
+        return 0
+    done
+}
+
+# Exécuter une commande watch
+run_watch_command() {
+    local label=$1
+    local command=$2
+    local interval=${3:-2}
+
+    echo ""
+    echo -e "${YELLOW}Mode watch activé (${interval}s) - Appuyez sur Ctrl+C pour quitter${NC}"
+    echo ""
+    watch -n "$interval" -c "$command"
+}
+
+# Fonction unifiée pour exécuter un script avec ou sans privilèges root
+run_script_with_privilege() {
+    local script=$1
+    local use_sudo=${2:-true}
+
+    echo ""
+    echo -e "${YELLOW}Exécution de ${script}...${NC}"
+    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
+
+    # Validation: vérifier que le script existe
+    if [ ! -f "$script" ]; then
+        echo -e "${RED}✗ Script non trouvé: $script${NC}"
+        echo ""
+        read -p "Appuyez sur Entrée pour continuer..."
+        return 1
+    fi
+
+    # Rendre le script exécutable
+    chmod +x "$script"
+
+    # Exécuter avec ou sans sudo
+    if [[ "$use_sudo" == true ]]; then
+        sudo "$script"
+    else
+        "$script"
+    fi
+
+    local exit_code=$?
+    echo ""
+    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
+    if [ $exit_code -eq 0 ]; then
+        echo -e "${GREEN}✓ Script exécuté avec succès${NC}"
+    else
+        echo -e "${RED}✗ Erreur lors de l'exécution (code: $exit_code)${NC}"
+    fi
+
+    echo ""
+    read -p "Appuyez sur Entrée pour continuer..."
+    return $exit_code
+}
+
+# Wrappers de compatibilité
+run_script() {
+    run_script_with_privilege "$1" true
+}
+
+run_script_no_sudo() {
+    run_script_with_privilege "$1" false
+}
 
 # Fonction pour afficher le titre
 show_header() {
