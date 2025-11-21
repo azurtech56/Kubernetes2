@@ -171,6 +171,15 @@ kubeadm init --config kubelet-ha.yaml --upload-certs | tee kubeadm-init.log
 echo -e "${GREEN}✓ Cluster initialisé${NC}"
 
 echo -e "${YELLOW}[2/4] Configuration de kubectl pour l'utilisateur courant...${NC}"
+
+# Vérifier que le fichier admin.conf existe (créé par kubeadm init)
+if [ ! -f /etc/kubernetes/admin.conf ]; then
+    echo -e "${RED}✗ Erreur: /etc/kubernetes/admin.conf non trouvé${NC}"
+    echo -e "${YELLOW}Le cluster n'a pas été initialisé avec 'kubeadm init'${NC}"
+    echo -e "${YELLOW}Assurez-vous d'avoir exécuté les étapes précédentes${NC}"
+    exit 1
+fi
+
 # Configuration pour root
 mkdir -p $HOME/.kube
 cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
