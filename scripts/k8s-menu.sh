@@ -302,58 +302,6 @@ show_help_menu() {
     echo -ne "${YELLOW}Votre choix: ${NC}"
 }
 
-# Fonction pour exécuter un script
-run_script() {
-    local script=$1
-    echo ""
-    echo -e "${YELLOW}Exécution de ${script}...${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
-
-    if [ -f "$script" ]; then
-        chmod +x "$script"
-        sudo "$script"
-        local exit_code=$?
-        echo ""
-        echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
-        if [ $exit_code -eq 0 ]; then
-            echo -e "${GREEN}✓ Script exécuté avec succès${NC}"
-        else
-            echo -e "${RED}✗ Erreur lors de l'exécution (code: $exit_code)${NC}"
-        fi
-    else
-        echo -e "${RED}✗ Script non trouvé: $script${NC}"
-    fi
-
-    echo ""
-    read -p "Appuyez sur Entrée pour continuer..."
-}
-
-# Fonction pour exécuter un script sans sudo
-run_script_no_sudo() {
-    local script=$1
-    echo ""
-    echo -e "${YELLOW}Exécution de ${script}...${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
-
-    if [ -f "$script" ]; then
-        chmod +x "$script"
-        "$script"
-        local exit_code=$?
-        echo ""
-        echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
-        if [ $exit_code -eq 0 ]; then
-            echo -e "${GREEN}✓ Script exécuté avec succès${NC}"
-        else
-            echo -e "${RED}✗ Erreur lors de l'exécution (code: $exit_code)${NC}"
-        fi
-    else
-        echo -e "${RED}✗ Script non trouvé: $script${NC}"
-    fi
-
-    echo ""
-    read -p "Appuyez sur Entrée pour continuer..."
-}
-
 # Fonction pour afficher l'architecture
 show_architecture() {
     show_header
