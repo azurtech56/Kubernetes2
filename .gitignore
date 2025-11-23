@@ -1,39 +1,74 @@
-# Kubernetes
+# ============================================================================
+# Kubernetes Setup - .gitignore
+# ============================================================================
+
+# Logs and temporary files
 *.log
+deployment-*.log
 kubeadm-init.log
-join-commands.txt
-.kube/
-admin.conf
-
-# Generated configs
-#metallb-config.yaml
-#cadvisor.yaml
-#prometheus-values.yaml
-#kubelet-ha.yaml
-
-# Sauvegarde config
-config.sh.backup
-
-# Helm
-rancher/
-*.tgz
-
-# Temporary files
 *.tmp
 *.bak
 *~
 
-# OS files
+# Generated/sensitive files
+join-commands.txt
+join-nodes.sh
+.kube/
+admin.conf
+kubelet-ha.yaml
+*.pem
+*.key
+*.crt
+*.csr
+
+# Configuration files (backups and local overrides)
+config.sh.backup
+config.local.sh
+.env
+.env.local
+*.env
+
+# Deployment artifacts
+rancher/
+*.tgz
+helm-charts/
+
+# Temporary directories
+temp/
+tmp/
+cache/
+
+# OS-specific files
 .DS_Store
 Thumbs.db
+.directory
+ehthumbs.db
+desktop.ini
 
-# IDE
+# IDE and editor files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+.sublime-*
+.project
+.classpath
 
-# Secrets
+# Secrets and credentials
 secrets/
-*.pem
-*.key
+credentials/
+*-secret*.yaml
+*-secret*.yml
+*credentials*
+*password*
+
+# Architecture-specific binaries
+kubeadm
+kubectl
+kubelet
+
+# Kubernetes manifests (local versions)
+metallb-config.yaml
+cadvisor.yaml
+prometheus-values.yaml
