@@ -54,6 +54,11 @@ if [ -f "$SCRIPT_DIR/lib/error-codes.sh" ]; then
     source "$SCRIPT_DIR/lib/error-codes.sh"
 fi
 
+# Charger bibliothèque des règles firewall
+if [ -f "$SCRIPT_DIR/lib/firewall-rules.sh" ]; then
+    source "$SCRIPT_DIR/lib/firewall-rules.sh"
+fi
+
 # Charger et valider la configuration
 if [ -f "$SCRIPT_DIR/lib-config.sh" ]; then
     source "$SCRIPT_DIR/lib-config.sh"
@@ -79,52 +84,17 @@ echo -e "${YELLOW}[1/3] Configuration du firewall pour Master...${NC}"
 echo "  Réseau nœuds: ${CLUSTER_NODES_NETWORK}"
 echo "  Réseau pods: ${POD_NETWORK}"
 
-# Temporairement désactiver set -e pour les commandes UFW
+# Temporairement désactiver set -e pour les commandes UFW (peuvent échouer si UFW non installé)
 set +e
 
-if type -t setup_ufw_rule_idempotent &>/dev/null; then
-    # Mode idempotent
-    setup_ufw_rule_idempotent 22 tcp "SSH"
-    setup_ufw_rule_idempotent 80 tcp "HTTP"
-    setup_ufw_rule_idempotent 443 tcp "HTTPS"
-    setup_ufw_rule_idempotent 9090 tcp "Prometheus"
-    setup_ufw_rule_idempotent 9093 tcp "Alertmanager"
-    setup_ufw_rule_idempotent 6443 tcp "Kubernetes API"
-    setup_ufw_rule_idempotent 2379 tcp "etcd client"
-    setup_ufw_rule_idempotent 2380 tcp "etcd peer"
-    setup_ufw_rule_idempotent 10250 tcp "Kubelet API"
-    setup_ufw_rule_idempotent 10251 tcp "kube-scheduler"
-    setup_ufw_rule_idempotent 10252 tcp "kube-controller-manager"
-    setup_ufw_rule_idempotent 10255 tcp "Kubelet Read-only"
-    setup_ufw_vrrp_idempotent
-    setup_ufw_network_rule_idempotent "${POD_NETWORK}" "from"
-    setup_ufw_network_rule_idempotent "${POD_NETWORK}" "to"
-    setup_ufw_network_rule_idempotent "${CLUSTER_NODES_NETWORK}" "from"
-    enable_ufw_idempotent
+if type -t configure_master_firewall &>/dev/null; then
+    configure_master_firewall "${POD_NETWORK}" "${CLUSTER_NODES_NETWORK}"
+    configure_keepalived_firewall
+    enable_firewall
 else
-    # Mode standard (fallback si lib-idempotent non disponible)
-    ufw allow 22/tcp        # SSH (IMPORTANT!)
-    ufw allow 80/tcp        # HTTP (LoadBalancer - Rancher, Grafana)
-    ufw allow 443/tcp       # HTTPS (LoadBalancer - Rancher, Grafana)
-    ufw allow 9090/tcp      # Prometheus
-    ufw allow 9093/tcp      # Alertmanager
-    ufw allow 6443/tcp      # Kubernetes API server
-    ufw allow 2379/tcp      # etcd client
-    ufw allow 2380/tcp      # etcd peer
-    ufw allow 10250/tcp     # Kubelet API
-    ufw allow 10251/tcp     # kube-scheduler
-    ufw allow 10252/tcp     # kube-controller-manager
-    ufw allow 10255/tcp     # Read-only Kubelet API
-    ufw allow from any to any proto vrrp    # keepalived VRRP
-    ufw allow from ${POD_NETWORK}  # Calico pod network
-    ufw allow to ${POD_NETWORK}    # Calico pod network
-    ufw allow from ${CLUSTER_NODES_NETWORK}  # Communication inter-nœuds
-    ufw --force enable
-    ufw reload
-    echo -e "${GREEN}✓ Firewall configuré pour Master${NC}"
+    echo -e "${YELLOW}⚠ lib/firewall-rules.sh non disponible${NC}"
 fi
 
-# Réactiver set -e pour les commandes suivantes
 set -e
 
 echo -e "${YELLOW}[2/3] Installation de keepalived...${NC}"
