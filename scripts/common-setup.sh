@@ -62,17 +62,23 @@ if [ -f "$SCRIPT_DIR/lib/notifications.sh" ]; then
     notify_install_start "Configuration commune"
 fi
 
-if [ -f "$SCRIPT_DIR/config.sh" ]; then
-    echo -e "${BLUE}Chargement de la configuration depuis config.sh...${NC}"
-    source "$SCRIPT_DIR/config.sh"
+# Charger et valider la configuration
+if [ -f "$SCRIPT_DIR/lib-config.sh" ]; then
+    source "$SCRIPT_DIR/lib-config.sh"
+
+    # Charger configuration avec validation
+    if ! load_kubernetes_config "$SCRIPT_DIR"; then
+        echo -e "${RED}✗ Erreur: Configuration invalide ou incomplète${NC}"
+        exit 1
+    fi
+
+    # Afficher configuration chargée
+    show_kubernetes_config
 else
-    echo -e "${YELLOW}Avertissement: config.sh non trouvé, utilisation de la version par défaut${NC}"
-    K8S_VERSION="1.33.0"
-    K8S_REPO_VERSION="1.33"
+    echo -e "${RED}✗ Erreur: lib-config.sh manquant${NC}"
+    exit 1
 fi
 
-echo -e "${BLUE}Version Kubernetes à installer: ${K8S_VERSION}${NC}"
-echo -e "${BLUE}Repository Kubernetes: v${K8S_REPO_VERSION}${NC}"
 echo ""
 
 echo -e "${YELLOW}[1/8] Désactivation du swap...${NC}"

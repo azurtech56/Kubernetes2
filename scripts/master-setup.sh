@@ -54,12 +54,25 @@ if [ -f "$SCRIPT_DIR/lib/error-codes.sh" ]; then
     source "$SCRIPT_DIR/lib/error-codes.sh"
 fi
 
-if [ -f "$SCRIPT_DIR/config.sh" ]; then
-    source "$SCRIPT_DIR/config.sh"
+# Charger et valider la configuration
+if [ -f "$SCRIPT_DIR/lib-config.sh" ]; then
+    source "$SCRIPT_DIR/lib-config.sh"
+
+    # Charger configuration avec validation
+    if ! load_kubernetes_config "$SCRIPT_DIR"; then
+        echo -e "${RED}✗ Erreur: Configuration invalide ou incomplète${NC}"
+        exit 1
+    fi
+
+    # Vérifier prérequis installation
+    if ! validate_install_prerequisites "master-setup.sh"; then
+        echo -e "${RED}✗ Prérequis non satisfaits${NC}"
+        echo -e "${YELLOW}Exécutez d'abord: ./common-setup.sh${NC}"
+        exit 1
+    fi
 else
-    # Valeurs par défaut si config.sh n'existe pas
-    CLUSTER_NODES_NETWORK="192.168.0.0/24"
-    POD_NETWORK="11.0.0.0/16"
+    echo -e "${RED}✗ Erreur: lib-config.sh manquant${NC}"
+    exit 1
 fi
 
 echo -e "${YELLOW}[1/3] Configuration du firewall pour Master...${NC}"

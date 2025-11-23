@@ -27,18 +27,31 @@ fi
 
 # Charger la configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "$SCRIPT_DIR/config.sh" ]; then
-    echo -e "${BLUE}Chargement de la configuration depuis config.sh...${NC}"
-    source "$SCRIPT_DIR/config.sh"
+
+# Charger et valider la configuration
+if [ -f "$SCRIPT_DIR/lib-config.sh" ]; then
+    source "$SCRIPT_DIR/lib-config.sh"
+
+    # Charger configuration avec validation
+    if ! load_kubernetes_config "$SCRIPT_DIR"; then
+        echo -e "${RED}✗ Erreur: Configuration invalide ou incomplète${NC}"
+        exit 1
+    fi
+
+    # Vérifier prérequis installation
+    if ! validate_install_prerequisites "init-cluster.sh"; then
+        echo -e "${RED}✗ Prérequis non satisfaits${NC}"
+        echo -e "${YELLOW}Exécutez d'abord: ./common-setup.sh${NC}"
+        exit 1
+    fi
+
+    # Afficher configuration chargée
+    show_kubernetes_config
 else
-    echo -e "${YELLOW}Avertissement: config.sh non trouvé, utilisation des valeurs par défaut${NC}"
+    echo -e "${RED}✗ Erreur: lib-config.sh manquant${NC}"
+    exit 1
 fi
 
-# Afficher la configuration détectée
-echo ""
-echo -e "${BLUE}Configuration détectée depuis config.sh:${NC}"
-echo "  VIP: ${VIP:-Non défini}"
-echo "  Masters: $(get_master_count 2>/dev/null || echo '3') nœuds"
 echo ""
 
 # Demander confirmation

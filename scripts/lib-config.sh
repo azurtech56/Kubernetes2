@@ -241,6 +241,80 @@ warn_missing_config() {
     echo ""
 }
 
+# ============================================================================
+# FONCTION: Valider système et prérequis
+# ============================================================================
+validate_system_prerequisites() {
+    local errors=0
+
+    # Vérifier si root
+    if [ "$EUID" -ne 0 ]; then
+        echo -e "${RED}✗ Ce script doit être exécuté en tant que root${NC}"
+        ((errors++))
+    fi
+
+    # Vérifier commandes requises
+    local required_commands=(
+        "kubeadm"
+        "kubectl"
+        "kubelet"
+        "containerd"
+        "curl"
+        "wget"
+        "git"
+    )
+
+    for cmd in "${required_commands[@]}"; do
+        if ! command -v "$cmd" &> /dev/null; then
+            echo -e "${RED}✗ Commande manquante: ${cmd}${NC}"
+            ((errors++))
+        fi
+    done
+
+    # Vérifier espace disque (minimum 5GB)
+    local available_kb=$(df / | tail -1 | awk '{print $4}')
+    if [ "$available_kb" -lt 5242880 ]; then  # 5GB en KB
+        echo -e "${RED}✗ Espace disque insuffisant (< 5GB disponible)${NC}"
+        ((errors++))
+    fi
+
+    # Vérifier RAM (minimum 2GB)
+    local available_mem_kb=$(free | grep Mem | awk '{print $7}')
+    if [ "$available_mem_kb" -lt 2097152 ]; then  # 2GB en KB
+        echo -e "${YELLOW}⚠ RAM insuffisante pour Kubernetes (recommandé: 4GB+)${NC}"
+    fi
+
+    return $errors
+}
+
+# ============================================================================
+# FONCTION: Valider configuration d'installation
+# ============================================================================
+validate_install_prerequisites() {
+    local script_name=$1
+    local errors=0
+
+    # Ces dépendances doivent être installées
+    if [ "$script_name" != "common-setup.sh" ]; then
+        local required_packages=(
+            "kubeadm"
+            "kubectl"
+            "kubelet"
+            "containerd"
+        )
+
+        for pkg in "${required_packages[@]}"; do
+            if ! command -v "$pkg" &> /dev/null; then
+                echo -e "${RED}✗ Prérequis manquant: ${pkg}${NC}"
+                echo -e "${YELLOW}  Exécutez d'abord: ./common-setup.sh${NC}"
+                ((errors++))
+            fi
+        done
+    fi
+
+    return $errors
+}
+
 # Export des fonctions pour utilisation par source
 export -f load_kubernetes_config
 export -f set_default_kubernetes_config
@@ -251,3 +325,5 @@ export -f show_kubernetes_config
 export -f get_k8s_major_minor
 export -f get_master_count
 export -f warn_missing_config
+export -f validate_system_prerequisites
+export -f validate_install_prerequisites
