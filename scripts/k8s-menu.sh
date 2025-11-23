@@ -149,14 +149,6 @@ run_script_with_privilege() {
     return $exit_code
 }
 
-# Wrappers de compatibilité
-run_script() {
-    run_script_with_privilege "$1" true
-}
-
-run_script_no_sudo() {
-    run_script_with_privilege "$1" false
-}
 
 # Fonction pour afficher le titre
 show_header() {
@@ -543,11 +535,11 @@ installation_wizard() {
             read -p "Continuer? [y/N]: " confirm
 
             if [[ $confirm =~ ^[Yy]$ ]]; then
-                run_script "./common-setup.sh"
-                run_script "./master-setup.sh"
-                run_script "./setup-keepalived.sh"
-                run_script "./init-cluster.sh"
-                run_script_no_sudo "./install-calico.sh"
+                run_script_with_privilege "./common-setup.sh" true
+                run_script_with_privilege "./master-setup.sh" true
+                run_script_with_privilege "./setup-keepalived.sh" true
+                run_script_with_privilege "./init-cluster.sh" true
+                run_script_with_privilege "./install-calico.sh" false
 
                 echo ""
                 echo -e "${GREEN}══════════════════════════════════════════════════════════════${NC}"
@@ -576,9 +568,9 @@ installation_wizard() {
             read -p "Continuer? [y/N]: " confirm
 
             if [[ $confirm =~ ^[Yy]$ ]]; then
-                run_script "./common-setup.sh"
-                run_script "./master-setup.sh"
-                run_script "./setup-keepalived.sh"
+                run_script_with_privilege "./common-setup.sh" true
+                run_script_with_privilege "./master-setup.sh" true
+                run_script_with_privilege "./setup-keepalived.sh" true
 
                 echo ""
                 echo -e "${YELLOW}Utilisez maintenant la commande 'kubeadm join' avec --control-plane${NC}"
@@ -600,8 +592,8 @@ installation_wizard() {
             read -p "Continuer? [y/N]: " confirm
 
             if [[ $confirm =~ ^[Yy]$ ]]; then
-                run_script "./common-setup.sh"
-                run_script "./worker-setup.sh"
+                run_script_with_privilege "./common-setup.sh" true
+                run_script_with_privilege "./worker-setup.sh" true
 
                 echo ""
                 echo -e "${YELLOW}Utilisez maintenant la commande 'kubeadm join' (SANS --control-plane)${NC}"
@@ -963,12 +955,12 @@ main() {
                     read step_choice
 
                     case $step_choice in
-                        1) run_script "./common-setup.sh" ;;
-                        2) run_script "./master-setup.sh" ;;
-                        3) run_script "./worker-setup.sh" ;;
-                        4) run_script "./setup-keepalived.sh" ;;
-                        5) run_script "./init-cluster.sh" ;;
-                        6) run_script_no_sudo "./install-calico.sh" ;;
+                        1) run_script_with_privilege "./common-setup.sh" true ;;
+                        2) run_script_with_privilege "./master-setup.sh" true ;;
+                        3) run_script_with_privilege "./worker-setup.sh" true ;;
+                        4) run_script_with_privilege "./setup-keepalived.sh" true ;;
+                        5) run_script_with_privilege "./init-cluster.sh" true ;;
+                        6) run_script_with_privilege "./install-calico.sh" false ;;
                         0) break ;;
                         *)
                             echo -e "${RED}Choix invalide${NC}"
@@ -984,13 +976,13 @@ main() {
                     read addon_choice
 
                     case $addon_choice in
-                        1) run_script_no_sudo "./install-metallb.sh" ;;
-                        2) run_script_no_sudo "./install-rancher.sh" ;;
-                        3) run_script_no_sudo "./install-monitoring.sh" ;;
+                        1) run_script_with_privilege "./install-metallb.sh" false ;;
+                        2) run_script_with_privilege "./install-rancher.sh" false ;;
+                        3) run_script_with_privilege "./install-monitoring.sh" false ;;
                         4)
-                            run_script_no_sudo "./install-metallb.sh"
-                            run_script_no_sudo "./install-rancher.sh"
-                            run_script_no_sudo "./install-monitoring.sh"
+                            run_script_with_privilege "./install-metallb.sh" false
+                            run_script_with_privilege "./install-rancher.sh" false
+                            run_script_with_privilege "./install-monitoring.sh" false
                             ;;
                         5) uninstall_metallb ;;
                         6) uninstall_rancher ;;
