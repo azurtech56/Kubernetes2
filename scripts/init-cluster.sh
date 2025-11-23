@@ -213,7 +213,7 @@ export KUBECONFIG=$HOME/.kube/config
 
 echo -e "${YELLOW}[3/4] Extraction des commandes de join...${NC}"
 
-# Extraire les commandes de join
+# Extraire les commandes de join et les sauvegarder de manière réutilisable
 echo -e "${BLUE}========================================${NC}" > join-commands.txt
 echo -e "COMMANDES POUR REJOINDRE LE CLUSTER" >> join-commands.txt
 echo -e "${BLUE}========================================${NC}" >> join-commands.txt
@@ -226,7 +226,55 @@ echo "" >> join-commands.txt
 echo "# Pour ajouter un WORKER:" >> join-commands.txt
 grep -A 3 "kubeadm join" kubeadm-init.log | grep -v "control-plane" | head -n 3 >> join-commands.txt || echo "Commande non trouvée" >> join-commands.txt
 
-echo -e "${GREEN}✓ Commandes sauvegardées dans join-commands.txt${NC}"
+# Sauvegarder aussi un script sourçable pour automatisation
+echo -e "${BLUE}Génération du script d'automatisation join-nodes.sh...${NC}"
+
+# Extraire le token et le certificat hash
+MASTER_JOIN_CMD=$(grep -A 3 "kubeadm join" kubeadm-init.log | grep "control-plane" | head -n 3 | tr '\n' ' ' | sed 's/  */ /g')
+WORKER_JOIN_CMD=$(grep -A 3 "kubeadm join" kubeadm-init.log | grep -v "control-plane" | head -n 3 | tr '\n' ' ' | sed 's/  */ /g')
+
+cat > join-nodes.sh <<'JOINEOF'
+#!/bin/bash
+# Script d'aide pour rejoindre des nœuds au cluster Kubernetes
+# Généré par init-cluster.sh - À customizer selon vos besoins
+
+# Couleurs
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+show_commands() {
+    echo -e "${GREEN}═══════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}Commandes pour rejoindre le cluster${NC}"
+    echo -e "${GREEN}═══════════════════════════════════════════════════${NC}"
+    echo ""
+    echo -e "${YELLOW}Pour ajouter un MASTER:${NC}"
+JOINEOF
+
+echo "    echo \"$MASTER_JOIN_CMD\"" >> join-nodes.sh
+
+cat >> join-nodes.sh <<'JOINEOF'
+    echo ""
+    echo -e "${YELLOW}Pour ajouter un WORKER:${NC}"
+JOINEOF
+
+echo "    echo \"$WORKER_JOIN_CMD\"" >> join-nodes.sh
+
+cat >> join-nodes.sh <<'JOINEOF'
+    echo ""
+}
+
+# Si appelé directement, afficher les commandes
+if [ "${BASH_SOURCE[0]}" == "${0}" ]; then
+    show_commands
+fi
+JOINEOF
+
+chmod +x join-nodes.sh
+echo -e "${GREEN}✓ Script join-nodes.sh généré${NC}"
+
+echo -e "${GREEN}✓ Commandes sauvegardées dans join-commands.txt et join-nodes.sh${NC}"
 
 echo -e "${YELLOW}[4/4] Vérification du cluster...${NC}"
 sleep 5
