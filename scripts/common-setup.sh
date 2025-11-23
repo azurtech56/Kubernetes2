@@ -28,6 +28,23 @@ fi
 # Charger la configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Vérifier les prérequis système avant toute chose
+if [ -f "$SCRIPT_DIR/check-prerequisites.sh" ]; then
+    echo -e "${YELLOW}Vérification des prérequis système...${NC}"
+    echo ""
+
+    # Exécuter le script de vérification
+    if ! bash "$SCRIPT_DIR/check-prerequisites.sh" "auto"; then
+        echo ""
+        echo -e "${RED}✗ Les prérequis n'ont pas pu être validés${NC}"
+        echo -e "${YELLOW}Veuillez corriger les erreurs critiques avant de continuer${NC}"
+        echo ""
+        exit 1
+    fi
+
+    echo ""
+fi
+
 # Charger les bibliothèques
 if [ -f "$SCRIPT_DIR/lib/logging.sh" ]; then
     source "$SCRIPT_DIR/lib/logging.sh"

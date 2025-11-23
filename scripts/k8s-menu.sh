@@ -263,13 +263,17 @@ show_diagnostic_menu() {
     show_header
     echo -e "${BOLD}${BLUE}═══ VÉRIFICATIONS ET DIAGNOSTICS ═══${NC}"
     echo ""
-    echo -e "${GREEN}[1]${NC}  Vérifier l'état des pods système"
-    echo -e "${GREEN}[2]${NC}  Vérifier keepalived et IP virtuelle"
-    echo -e "${GREEN}[3]${NC}  Vérifier MetalLB"
-    echo -e "${GREEN}[4]${NC}  Vérifier Calico"
-    echo -e "${GREEN}[5]${NC}  Logs des pods (sélection interactive)"
-    echo -e "${GREEN}[6]${NC}  Test de déploiement nginx"
-    echo -e "${GREEN}[7]${NC}  Rapport complet du cluster"
+    echo -e "${MAGENTA}▶ Avant installation${NC}"
+    echo -e "${GREEN}[1]${NC}  Vérifier les prérequis système"
+    echo ""
+    echo -e "${MAGENTA}▶ Après installation${NC}"
+    echo -e "${GREEN}[2]${NC}  Vérifier l'état des pods système"
+    echo -e "${GREEN}[3]${NC}  Vérifier keepalived et IP virtuelle"
+    echo -e "${GREEN}[4]${NC}  Vérifier MetalLB"
+    echo -e "${GREEN}[5]${NC}  Vérifier Calico"
+    echo -e "${GREEN}[6]${NC}  Logs des pods (sélection interactive)"
+    echo -e "${GREEN}[7]${NC}  Test de déploiement nginx"
+    echo -e "${GREEN}[8]${NC}  Rapport complet du cluster"
     echo ""
     echo -e "${RED}[0]${NC}  Retour au menu principal"
     echo ""
@@ -685,12 +689,24 @@ run_diagnostics() {
 
         case $choice in
             1)
+                # Vérifier les prérequis système
+                if [ -f "$SCRIPT_DIR/check-prerequisites.sh" ]; then
+                    echo ""
+                    bash "$SCRIPT_DIR/check-prerequisites.sh" "auto"
+                    echo ""
+                    read -p "Appuyez sur Entrée pour continuer..."
+                else
+                    echo -e "${RED}✗ Script check-prerequisites.sh non trouvé${NC}"
+                    read -p "Appuyez sur Entrée pour continuer..."
+                fi
+                ;;
+            2)
                 echo ""
                 echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
                 echo ""
                 watch -n 2 -c "kubectl get pods -n kube-system"
                 ;;
-            2)
+            3)
                 # La configuration est déjà chargée globalement
                 VIP_TO_CHECK="${VIP:-192.168.0.200}"
                 echo ""
@@ -698,19 +714,19 @@ run_diagnostics() {
                 echo ""
                 watch -n 2 "echo -e '${GREEN}=== État keepalived ===${NC}' && systemctl status keepalived --no-pager | head -15 && echo '' && echo -e '${GREEN}=== IP Virtuelle ===${NC}' && ip addr | grep -A2 '${VIP_TO_CHECK}'"
                 ;;
-            3)
+            4)
                 echo ""
                 echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
                 echo ""
                 watch -n 2 -c "echo '=== Pods MetalLB ===' && kubectl get pods -n metallb-system && echo '' && echo '=== IP Pools ===' && kubectl get ipaddresspools.metallb.io -n metallb-system"
                 ;;
-            4)
+            5)
                 echo ""
                 echo -e "${YELLOW}Mode watch activé - Appuyez sur Ctrl+C pour quitter${NC}"
                 echo ""
                 watch -n 2 -c "kubectl get pods -n kube-system | grep -E 'NAME|calico'"
                 ;;
-            5)
+            6)
                 echo ""
                 kubectl get pods -A
                 echo ""
@@ -721,7 +737,7 @@ run_diagnostics() {
                 echo ""
                 read -p "Appuyez sur Entrée pour continuer..."
                 ;;
-            6)
+            7)
                 echo ""
                 echo -e "${YELLOW}Création d'un déploiement nginx de test...${NC}"
                 kubectl create deployment nginx-test --image=nginx
@@ -735,7 +751,7 @@ run_diagnostics() {
                 echo ""
                 read -p "Appuyez sur Entrée pour continuer..."
                 ;;
-            7)
+            8)
                 show_header
                 echo -e "${BOLD}${BLUE}═══ RAPPORT COMPLET DU CLUSTER ═══${NC}"
                 echo ""
