@@ -28,40 +28,40 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Charger les bibliothèques v2.0
-if [ -f "$SCRIPT_DIR/lib/idempotent.sh" ]; then
-    source "$SCRIPT_DIR/lib/idempotent.sh"
+if [ -f "$SCRIPT_DIR/../lib/idempotent.sh" ]; then
+    source "$SCRIPT_DIR/../lib/idempotent.sh"
     init_idempotent
 fi
 
 # Charger bibliothèques v2.1
-if [ -f "$SCRIPT_DIR/lib/performance.sh" ]; then
-    source "$SCRIPT_DIR/lib/performance.sh"
+if [ -f "$SCRIPT_DIR/../lib/performance.sh" ]; then
+    source "$SCRIPT_DIR/../lib/performance.sh"
     init_cache
     start_timer "worker_setup"
 fi
 
-if [ -f "$SCRIPT_DIR/lib/dry-run.sh" ]; then
-    source "$SCRIPT_DIR/lib/dry-run.sh"
+if [ -f "$SCRIPT_DIR/../lib/dry-run.sh" ]; then
+    source "$SCRIPT_DIR/../lib/dry-run.sh"
     init_dry_run
 fi
 
-if [ -f "$SCRIPT_DIR/lib/notifications.sh" ]; then
-    source "$SCRIPT_DIR/lib/notifications.sh"
+if [ -f "$SCRIPT_DIR/../lib/notifications.sh" ]; then
+    source "$SCRIPT_DIR/../lib/notifications.sh"
     notify_install_start "Worker node"
 fi
 
-if [ -f "$SCRIPT_DIR/lib/error-codes.sh" ]; then
-    source "$SCRIPT_DIR/lib/error-codes.sh"
+if [ -f "$SCRIPT_DIR/../lib/error-codes.sh" ]; then
+    source "$SCRIPT_DIR/../lib/error-codes.sh"
 fi
 
 # Charger bibliothèque des règles firewall
-if [ -f "$SCRIPT_DIR/lib/firewall-rules.sh" ]; then
-    source "$SCRIPT_DIR/lib/firewall-rules.sh"
+if [ -f "$SCRIPT_DIR/../lib/firewall-rules.sh" ]; then
+    source "$SCRIPT_DIR/../lib/firewall-rules.sh"
 fi
 
 # Charger et valider la configuration
-if [ -f "$SCRIPT_DIR/lib-config.sh" ]; then
-    source "$SCRIPT_DIR/lib-config.sh"
+if [ -f "$SCRIPT_DIR/../lib-config.sh" ]; then
+    source "$SCRIPT_DIR/../lib-config.sh"
 
     # Charger configuration avec validation
     if ! load_kubernetes_config "$SCRIPT_DIR"; then

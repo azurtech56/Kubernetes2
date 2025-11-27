@@ -829,12 +829,12 @@ while [ $# -gt 0 ]; do
 done
 
 # Charger config.sh
-if [ ! -f "$SCRIPT_DIR/config.sh" ]; then
+if [ ! -f "$SCRIPT_DIR/../config.sh" ]; then
     echo -e "${RED}Erreur: config.sh introuvable dans $SCRIPT_DIR${NC}"
     exit 1
 fi
 
-source "$SCRIPT_DIR/config.sh"
+source "$SCRIPT_DIR/../config.sh"
 
 # Header
 echo ""

@@ -20,8 +20,8 @@ BOLD='\033[1m'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Charger les bibliothèques
-source "$SCRIPT_DIR/lib/logging.sh" 2>/dev/null || true
-source "$SCRIPT_DIR/lib/notifications.sh" 2>/dev/null || true
+source "$SCRIPT_DIR/../lib/logging.sh" 2>/dev/null || true
+source "$SCRIPT_DIR/../lib/notifications.sh" 2>/dev/null || true
 
 init_logging "uninstall-cluster"
 

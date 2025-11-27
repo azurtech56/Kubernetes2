@@ -191,16 +191,16 @@ show_step_menu() {
     echo -e "${BOLD}${BLUE}═══ INSTALLATION PAR ÉTAPES ═══${NC}"
     echo ""
     echo -e "${MAGENTA}▶ Préparation (sur tous les nœuds)${NC}"
-    echo -e "${GREEN}[1]${NC}  Configuration commune (common-setup.sh)"
-    echo -e "${GREEN}[2]${NC}  Configuration Master (master-setup.sh)"
-    echo -e "${GREEN}[3]${NC}  Configuration Worker (worker-setup.sh)"
+    echo -e "${GREEN}[1]${NC}  Configuration commune (core/common-setup.sh)"
+    echo -e "${GREEN}[2]${NC}  Configuration Master (core/master-setup.sh)"
+    echo -e "${GREEN}[3]${NC}  Configuration Worker (core/worker-setup.sh)"
     echo ""
     echo -e "${MAGENTA}▶ Haute Disponibilité (HA)${NC}"
-    echo -e "${GREEN}[4]${NC}  Configuration keepalived (setup-keepalived.sh)"
+    echo -e "${GREEN}[4]${NC}  Configuration keepalived (core/setup-keepalived.sh)"
     echo ""
     echo -e "${MAGENTA}▶ Cluster${NC}"
-    echo -e "${GREEN}[5]${NC}  Initialisation du cluster (init-cluster.sh)"
-    echo -e "${GREEN}[6]${NC}  Installation Calico CNI (install-calico.sh)"
+    echo -e "${GREEN}[5]${NC}  Initialisation du cluster (core/init-cluster.sh)"
+    echo -e "${GREEN}[6]${NC}  Installation Calico CNI (core/install-calico.sh)"
     echo ""
     echo -e "${RED}[0]${NC}  Retour au menu principal"
     echo ""
@@ -442,8 +442,8 @@ show_installation_order() {
     echo "   → setup-keepalived.sh (choisir le bon rôle)"
     echo ""
     echo -e "${YELLOW}3. Sur le PREMIER master UNIQUEMENT (${MASTER1_HOSTNAME:-master1}):${NC}"
-    echo "   → init-cluster.sh"
-    echo "   → install-calico.sh"
+    echo "   → core/init-cluster.sh"
+    echo "   → core/install-calico.sh"
     echo ""
 
     # Afficher les autres masters s'il y en a
@@ -474,9 +474,9 @@ show_installation_order() {
     echo "   → Utiliser la commande kubeadm join (sans --control-plane)"
     echo ""
     echo -e "${YELLOW}6. Add-ons optionnels (sur le premier master):${NC}"
-    echo "   → install-metallb.sh"
-    echo "   → install-rancher.sh"
-    echo "   → install-monitoring.sh"
+    echo "   → addons/install-metallb.sh"
+    echo "   → addons/install-rancher.sh"
+    echo "   → addons/install-monitoring.sh"
     echo ""
     read -p "Appuyez sur Entrée pour continuer..."
 }
@@ -539,11 +539,11 @@ installation_wizard() {
             read -p "Continuer? [y/N]: " confirm
 
             if [[ $confirm =~ ^[Yy]$ ]]; then
-                run_script_with_privilege "./common-setup.sh" true
-                run_script_with_privilege "./master-setup.sh" true
-                run_script_with_privilege "./setup-keepalived.sh" true
-                run_script_with_privilege "./init-cluster.sh" true
-                run_script_with_privilege "./install-calico.sh" false
+                run_script_with_privilege "./core/common-setup.sh" true
+                run_script_with_privilege "./core/master-setup.sh" true
+                run_script_with_privilege "./core/setup-keepalived.sh" true
+                run_script_with_privilege "./core/init-cluster.sh" true
+                run_script_with_privilege "./core/install-calico.sh" false
 
                 echo ""
                 echo -e "${GREEN}══════════════════════════════════════════════════════════════${NC}"
@@ -572,9 +572,9 @@ installation_wizard() {
             read -p "Continuer? [y/N]: " confirm
 
             if [[ $confirm =~ ^[Yy]$ ]]; then
-                run_script_with_privilege "./common-setup.sh" true
-                run_script_with_privilege "./master-setup.sh" true
-                run_script_with_privilege "./setup-keepalived.sh" true
+                run_script_with_privilege "./core/common-setup.sh" true
+                run_script_with_privilege "./core/master-setup.sh" true
+                run_script_with_privilege "./core/setup-keepalived.sh" true
 
                 echo ""
                 echo -e "${YELLOW}Utilisez maintenant la commande 'kubeadm join' avec --control-plane${NC}"
@@ -596,8 +596,8 @@ installation_wizard() {
             read -p "Continuer? [y/N]: " confirm
 
             if [[ $confirm =~ ^[Yy]$ ]]; then
-                run_script_with_privilege "./common-setup.sh" true
-                run_script_with_privilege "./worker-setup.sh" true
+                run_script_with_privilege "./core/common-setup.sh" true
+                run_script_with_privilege "./core/worker-setup.sh" true
 
                 echo ""
                 echo -e "${YELLOW}Utilisez maintenant la commande 'kubeadm join' (SANS --control-plane)${NC}"
@@ -690,13 +690,13 @@ run_diagnostics() {
         case $choice in
             1)
                 # Vérifier les prérequis système
-                if [ -f "$SCRIPT_DIR/check-prerequisites.sh" ]; then
+                if [ -f "$SCRIPT_DIR/core/check-prerequisites.sh" ]; then
                     echo ""
-                    bash "$SCRIPT_DIR/check-prerequisites.sh" "auto"
+                    bash "$SCRIPT_DIR/core/check-prerequisites.sh" "auto"
                     echo ""
                     read -p "Appuyez sur Entrée pour continuer..."
                 else
-                    echo -e "${RED}✗ Script check-prerequisites.sh non trouvé${NC}"
+                    echo -e "${RED}✗ Script core/check-prerequisites.sh non trouvé${NC}"
                     read -p "Appuyez sur Entrée pour continuer..."
                 fi
                 ;;
@@ -971,12 +971,12 @@ main() {
                     read step_choice
 
                     case $step_choice in
-                        1) run_script_with_privilege "./common-setup.sh" true ;;
-                        2) run_script_with_privilege "./master-setup.sh" true ;;
-                        3) run_script_with_privilege "./worker-setup.sh" true ;;
-                        4) run_script_with_privilege "./setup-keepalived.sh" true ;;
-                        5) run_script_with_privilege "./init-cluster.sh" true ;;
-                        6) run_script_with_privilege "./install-calico.sh" false ;;
+                        1) run_script_with_privilege "./core/common-setup.sh" true ;;
+                        2) run_script_with_privilege "./core/master-setup.sh" true ;;
+                        3) run_script_with_privilege "./core/worker-setup.sh" true ;;
+                        4) run_script_with_privilege "./core/setup-keepalived.sh" true ;;
+                        5) run_script_with_privilege "./core/init-cluster.sh" true ;;
+                        6) run_script_with_privilege "./core/install-calico.sh" false ;;
                         0) break ;;
                         *)
                             echo -e "${RED}Choix invalide${NC}"
@@ -992,13 +992,13 @@ main() {
                     read addon_choice
 
                     case $addon_choice in
-                        1) run_script_with_privilege "./install-metallb.sh" false ;;
-                        2) run_script_with_privilege "./install-rancher.sh" false ;;
-                        3) run_script_with_privilege "./install-monitoring.sh" false ;;
+                        1) run_script_with_privilege "./addons/install-metallb.sh" false ;;
+                        2) run_script_with_privilege "./addons/install-rancher.sh" false ;;
+                        3) run_script_with_privilege "./addons/install-monitoring.sh" false ;;
                         4)
-                            run_script_with_privilege "./install-metallb.sh" false
-                            run_script_with_privilege "./install-rancher.sh" false
-                            run_script_with_privilege "./install-monitoring.sh" false
+                            run_script_with_privilege "./addons/install-metallb.sh" false
+                            run_script_with_privilege "./addons/install-rancher.sh" false
+                            run_script_with_privilege "./addons/install-monitoring.sh" false
                             ;;
                         5) uninstall_metallb ;;
                         6) uninstall_rancher ;;

@@ -11,12 +11,12 @@ set -e
 # Charger les bibliothèques v2.1
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ -f "$SCRIPT_DIR/lib/error-codes.sh" ]; then
-    source "$SCRIPT_DIR/lib/error-codes.sh"
+if [ -f "$SCRIPT_DIR/../lib/error-codes.sh" ]; then
+    source "$SCRIPT_DIR/../lib/error-codes.sh"
 fi
 
-if [ -f "$SCRIPT_DIR/lib/notifications.sh" ]; then
-    source "$SCRIPT_DIR/lib/notifications.sh"
+if [ -f "$SCRIPT_DIR/../lib/notifications.sh" ]; then
+    source "$SCRIPT_DIR/../lib/notifications.sh"
 fi
 
 # Couleurs

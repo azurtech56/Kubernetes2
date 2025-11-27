@@ -46,42 +46,42 @@ if [ -f "$SCRIPT_DIR/check-prerequisites.sh" ]; then
 fi
 
 # Charger les bibliothèques
-if [ -f "$SCRIPT_DIR/lib/logging.sh" ]; then
-    source "$SCRIPT_DIR/lib/logging.sh"
+if [ -f "$SCRIPT_DIR/../lib/logging.sh" ]; then
+    source "$SCRIPT_DIR/../lib/logging.sh"
     init_logging
 fi
 
-if [ -f "$SCRIPT_DIR/lib/idempotent.sh" ]; then
-    source "$SCRIPT_DIR/lib/idempotent.sh"
+if [ -f "$SCRIPT_DIR/../lib/idempotent.sh" ]; then
+    source "$SCRIPT_DIR/../lib/idempotent.sh"
     init_idempotent
 else
     echo -e "${YELLOW}⚠ Bibliothèque d'idempotence non trouvée - Mode standard${NC}"
 fi
 
 # Charger bibliothèques v2.1
-if [ -f "$SCRIPT_DIR/lib/performance.sh" ]; then
-    source "$SCRIPT_DIR/lib/performance.sh"
+if [ -f "$SCRIPT_DIR/../lib/performance.sh" ]; then
+    source "$SCRIPT_DIR/../lib/performance.sh"
     init_cache
     start_timer "common_setup"
 fi
 
-if [ -f "$SCRIPT_DIR/lib/error-codes.sh" ]; then
-    source "$SCRIPT_DIR/lib/error-codes.sh"
+if [ -f "$SCRIPT_DIR/../lib/error-codes.sh" ]; then
+    source "$SCRIPT_DIR/../lib/error-codes.sh"
 fi
 
-if [ -f "$SCRIPT_DIR/lib/dry-run.sh" ]; then
-    source "$SCRIPT_DIR/lib/dry-run.sh"
+if [ -f "$SCRIPT_DIR/../lib/dry-run.sh" ]; then
+    source "$SCRIPT_DIR/../lib/dry-run.sh"
     init_dry_run
 fi
 
-if [ -f "$SCRIPT_DIR/lib/notifications.sh" ]; then
-    source "$SCRIPT_DIR/lib/notifications.sh"
+if [ -f "$SCRIPT_DIR/../lib/notifications.sh" ]; then
+    source "$SCRIPT_DIR/../lib/notifications.sh"
     notify_install_start "Configuration commune"
 fi
 
 # Charger et valider la configuration
-if [ -f "$SCRIPT_DIR/lib-config.sh" ]; then
-    source "$SCRIPT_DIR/lib-config.sh"
+if [ -f "$SCRIPT_DIR/../lib-config.sh" ]; then
+    source "$SCRIPT_DIR/../lib-config.sh"
 
     # Charger configuration avec validation
     if ! load_kubernetes_config "$SCRIPT_DIR"; then

@@ -52,13 +52,13 @@ if ! command -v helm &> /dev/null; then
 fi
 
 # Charger config et performance lib
-if [ -f "$SCRIPT_DIR/lib-config.sh" ]; then
-    source "$SCRIPT_DIR/lib-config.sh"
+if [ -f "$SCRIPT_DIR/../lib-config.sh" ]; then
+    source "$SCRIPT_DIR/../lib-config.sh"
     load_kubernetes_config "$SCRIPT_DIR" || exit 1
 fi
 
-if [ -f "$SCRIPT_DIR/lib/performance.sh" ]; then
-    source "$SCRIPT_DIR/lib/performance.sh"
+if [ -f "$SCRIPT_DIR/../lib/performance.sh" ]; then
+    source "$SCRIPT_DIR/../lib/performance.sh"
 fi
 
 show_header

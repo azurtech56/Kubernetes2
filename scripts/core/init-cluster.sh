@@ -29,8 +29,8 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Charger et valider la configuration
-if [ -f "$SCRIPT_DIR/lib-config.sh" ]; then
-    source "$SCRIPT_DIR/lib-config.sh"
+if [ -f "$SCRIPT_DIR/../lib-config.sh" ]; then
+    source "$SCRIPT_DIR/../lib-config.sh"
 
     # Charger configuration avec validation
     if ! load_kubernetes_config "$SCRIPT_DIR"; then

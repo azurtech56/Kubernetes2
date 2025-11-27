@@ -10,20 +10,20 @@ set -e
 
 # Charger les bibliothèques
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/lib/logging.sh" 2>/dev/null || true
+source "$SCRIPT_DIR/../lib/logging.sh" 2>/dev/null || true
 
 # Charger bibliothèques v2.1
-if [ -f "$SCRIPT_DIR/lib/notifications.sh" ]; then
-    source "$SCRIPT_DIR/lib/notifications.sh"
+if [ -f "$SCRIPT_DIR/../lib/notifications.sh" ]; then
+    source "$SCRIPT_DIR/../lib/notifications.sh"
 fi
 
-if [ -f "$SCRIPT_DIR/lib/performance.sh" ]; then
-    source "$SCRIPT_DIR/lib/performance.sh"
+if [ -f "$SCRIPT_DIR/../lib/performance.sh" ]; then
+    source "$SCRIPT_DIR/../lib/performance.sh"
     start_timer "backup" 2>/dev/null || true
 fi
 
-if [ -f "$SCRIPT_DIR/lib/error-codes.sh" ]; then
-    source "$SCRIPT_DIR/lib/error-codes.sh"
+if [ -f "$SCRIPT_DIR/../lib/error-codes.sh" ]; then
+    source "$SCRIPT_DIR/../lib/error-codes.sh"
 fi
 
 # Couleurs

@@ -27,9 +27,9 @@ fi
 
 # Charger la configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "$SCRIPT_DIR/config.sh" ]; then
+if [ -f "$SCRIPT_DIR/../config.sh" ]; then
     echo -e "${BLUE}Chargement de la configuration depuis config.sh...${NC}"
-    source "$SCRIPT_DIR/config.sh"
+    source "$SCRIPT_DIR/../config.sh"
 else
     echo -e "${YELLOW}Avertissement: config.sh non trouvé, utilisation des valeurs par défaut${NC}"
     VIP="192.168.0.200"

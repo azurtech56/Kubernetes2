@@ -21,8 +21,8 @@ WARNINGS=0
 
 # Charger la configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "$SCRIPT_DIR/config.sh" ]; then
-    source "$SCRIPT_DIR/config.sh" 2>/dev/null || true
+if [ -f "$SCRIPT_DIR/../config.sh" ]; then
+    source "$SCRIPT_DIR/../config.sh" 2>/dev/null || true
 fi
 
 # Déterminer le type de nœud

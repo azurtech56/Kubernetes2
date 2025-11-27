@@ -10,7 +10,7 @@ set -e
 
 # Charger les bibliothèques
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/lib/logging.sh" 2>/dev/null || true
+source "$SCRIPT_DIR/../lib/logging.sh" 2>/dev/null || true
 
 # Couleurs
 RED='\033[0;31m'

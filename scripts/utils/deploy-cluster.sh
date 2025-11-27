@@ -143,10 +143,10 @@ if [ -f "$SCRIPT_DIR/check-prerequisites.sh" ]; then
 fi
 
 log_step "Configuration détectée:"
-if [ -f "$SCRIPT_DIR/lib-config.sh" ]; then
-    source "$SCRIPT_DIR/lib-config.sh" 2>/dev/null
-    if [ -f "$SCRIPT_DIR/config.sh" ]; then
-        source "$SCRIPT_DIR/config.sh" 2>/dev/null
+if [ -f "$SCRIPT_DIR/../lib-config.sh" ]; then
+    source "$SCRIPT_DIR/../lib-config.sh" 2>/dev/null
+    if [ -f "$SCRIPT_DIR/../config.sh" ]; then
+        source "$SCRIPT_DIR/../config.sh" 2>/dev/null
         echo "  VIP: ${VIP:-Non définie}"
         echo "  Masters: $(get_master_count 2>/dev/null || echo 'Non détecté') nœuds"
     fi
