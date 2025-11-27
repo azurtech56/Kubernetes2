@@ -15,7 +15,7 @@ Scripts d'installation **100% automatisés** pour un cluster Kubernetes 1.33 en 
 ```bash
 git clone https://github.com/azurtech56/Kubernetes2.git
 cd Kubernetes2/scripts
-chmod +x *.sh
+chmod +x *.sh core/*.sh addons/*.sh utils/*.sh
 ```
 
 ### 2️⃣ Configurer (optionnel)
@@ -88,20 +88,74 @@ Le menu vous guide étape par étape. C'est tout ! 🎉
 
 ---
 
-## 📜 Scripts Disponibles
+## 📂 Structure des Scripts
 
+```
+scripts/
+├─ 🔴 RACINE (Menu + Config + Libs)
+│  ├─ k8s-menu.sh          ⭐ Menu principal (recommandé)
+│  ├─ config.sh            📝 Configuration globale
+│  ├─ lib-config.sh        🔧 Config loader
+│  ├─ generate-env.sh      🔐 Auto-generate secrets
+│  ├─ generate-hosts.sh    🌐 /etc/hosts generation
+│  ├─ lib/                 📚 Shared libraries (9 files)
+│  └─ .env.example         📋 Secrets template
+│
+├─ 🟢 core/ (Essentials HA)
+│  ├─ common-setup.sh
+│  ├─ master-setup.sh
+│  ├─ worker-setup.sh
+│  ├─ setup-keepalived.sh
+│  ├─ init-cluster.sh
+│  ├─ install-calico.sh
+│  ├─ validate-config.sh
+│  └─ check-prerequisites.sh
+│
+├─ 🟠 addons/ (Optionnels)
+│  ├─ install-monitoring.sh    (Prometheus + Grafana)
+│  ├─ install-loki.sh          (Centralized logs)
+│  ├─ install-rancher.sh       (Management UI)
+│  ├─ install-metallb.sh       (Load Balancer)
+│  ├─ install-storage.sh       (Storage)
+│  ├─ integrate-v2.1.sh        (Integration)
+│  └─ setup-auto-backup.sh     (Auto-backup)
+│
+└─ 🔵 utils/ (Maintenance)
+   ├─ backup-cluster.sh        (Backup etcd)
+   ├─ restore-cluster.sh       (Restore etcd)
+   ├─ cleanup-cluster.sh       (Cleanup nodes)
+   ├─ uninstall-cluster.sh     (Full uninstall)
+   ├─ health-check.sh          (Health monitoring)
+   └─ deploy-cluster.sh        (Deploy cluster)
+```
+
+### 📜 Scripts par Catégorie
+
+**🟢 CORE (Installation HA - REQUIS)**
 | Script | Description |
 |--------|-------------|
 | **k8s-menu.sh** | ⭐ Menu interactif (recommandé) |
-| common-setup.sh | Configuration commune tous les nœuds |
-| master-setup.sh | Configuration des masters |
-| worker-setup.sh | Configuration des workers |
-| init-cluster.sh | Initialisation du cluster |
-| setup-keepalived.sh | Haute disponibilité (VIP) |
-| install-calico.sh | Réseau Calico |
-| install-metallb.sh | Load Balancer |
-| install-rancher.sh | Interface Rancher |
-| install-monitoring.sh | Prometheus + Grafana |
+| **core/common-setup.sh** | Configuration commune tous les nœuds |
+| **core/master-setup.sh** | Configuration des masters |
+| **core/worker-setup.sh** | Configuration des workers |
+| **core/init-cluster.sh** | Initialisation du cluster |
+| **core/setup-keepalived.sh** | Haute disponibilité (VIP) |
+| **core/install-calico.sh** | Réseau Calico |
+
+**🟠 ADDONS (Optionnels)**
+| Script | Description |
+|--------|-------------|
+| **addons/install-metallb.sh** | Load Balancer |
+| **addons/install-rancher.sh** | Interface Rancher |
+| **addons/install-monitoring.sh** | Prometheus + Grafana |
+| **addons/install-loki.sh** | Centralized logging |
+
+**🔵 UTILS (Maintenance)**
+| Script | Description |
+|--------|-------------|
+| **utils/backup-cluster.sh** | Backup etcd |
+| **utils/restore-cluster.sh** | Restore etcd |
+| **utils/health-check.sh** | Health monitoring |
 
 ---
 
