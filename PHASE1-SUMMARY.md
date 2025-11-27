@@ -1,10 +1,10 @@
-# 🚀 PHASE 1 - Logs Centralisés + Support CNI Dual
+# 🚀 PHASE 1 - Logs Centralisés (Calico uniquement)
 
 **Date**: 25 novembre 2025
 **Commits**: 1 commit majeur
-**Fichiers créés**: 4 nouveaux scripts
-**Effort estimé**: 5-6 heures
-**Impact**: Observabilité + Flexibilité architecturale
+**Fichiers créés**: 1 nouveau script
+**Effort estimé**: 2-3 heures
+**Impact**: Observabilité centralisée
 
 ---
 
@@ -44,89 +44,25 @@ kubectl port-forward -n monitoring svc/grafana 3000:80
 
 ---
 
-### 2. **`scripts/install-cilium.sh`** (200 lignes)
-Alternative haute performance à Calico avec eBPF et observabilité
-
-**Caractéristiques**:
-- eBPF kernel-level networking
-- Hubble UI pour observabilité
-- L7 Network Policies (HTTP/DNS/gRPC)
-- Service mesh integration
-- Zero-trust security
-
-**Commandes utiles**:
-```bash
-sudo ./scripts/install-cilium.sh
-
-# Vérifier status
-cilium status
-cilium connectivity test
-
-# Hubble UI
-kubectl port-forward -n cilium svc/hubble-ui 8081:80
-# Ouvrir: http://localhost:8081
-```
-
-**Quand utiliser Cilium vs Calico**:
-| Critère | Calico | Cilium |
-|---------|--------|--------|
-| Sécurité L7 | ❌ | ✅ |
-| Ressources | ✅ Minimal | ⚠️ Plus |
-| Observabilité | Basique | ✅ Excellent |
-| Kernel requis | Flexible | >= 5.8 |
-| Clusters > 5000 nœuds | ⚠️ | ✅ |
-
----
-
-### 3. **`scripts/lib/cni-manager.sh`** (200 lignes)
-Abstraction pour gestion flexible Calico/Cilium
-
-**Fonctionnalités**:
-- `select_cni_interactive()` - Menu de sélection
-- `show_cni_options()` - Affiche comparaison
-- `show_cni_info()` - Détails architecture
-- `cni_summary()` - Résumé configuration
-- `install_cni()` - Installation wrapper
-
-**Utilisation**:
-```bash
-# Charger la bibliothèque
-source scripts/lib/cni-manager.sh
-
-# Afficher options
-show_cni_options
-
-# Sélectionner interactivement
-select_cni_interactive
-
-# Afficher infos
-show_cni_info "cilium"
-
-# Installer
-install_cni "calico" "./scripts"
-```
-
----
-
 ## 🎯 AMÉLIORATIONS DÉLIVRÉES
 
 ### Observabilité
-✅ Logs centralisés (Loki)
+✅ Logs centralisés (Loki + Promtail)
 ✅ Queryable via LogQL
 ✅ Intégration Grafana
-✅ Hubble UI (via Cilium)
+✅ Alertes et retention configurable
 
-### Flexibilité Réseau
-✅ Support Calico (BGP, léger)
-✅ Support Cilium (eBPF, avancé)
-✅ Sélection interactif
-✅ Abstraction CNI manager
+### Réseau
+✅ Calico CNI (BGP, léger, stable)
+✅ L3/L4 Network Policies
+✅ Firewall intégré
+✅ Monitoring via Prometheus
 
-### Sécurité Réseau
-✅ L3/L4 policies (Calico)
-✅ L7 policies (Cilium HTTP/DNS)
-✅ Zero-trust ready
+### Sécurité
+✅ Configuration stricte validée
+✅ Network policies appliquées
 ✅ Audit logging
+✅ RBAC ready
 
 ---
 
@@ -139,8 +75,8 @@ Logs:              Sur chaque    → Agrégés et queryables ✅
                    nœud
 Performance:       20-30 min     → 13-18 min (-50%) ✅
 Config errors:     Non validées  → Détectés avant ✅
-CNI options:       Calico only   → Calico + Cilium ✅
-L7 policies:       Non           → Oui (Cilium) ✅
+Monitoring:        Basique       → Prometheus + Grafana ✅
+Cluster state:     Manuel        → Health checks auto ✅
 ```
 
 ### GAINS MESURABLES
