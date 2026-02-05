@@ -197,6 +197,9 @@ preview_hosts() {
 
 # Option 3: Déployer sur tous les nœuds
 deploy_all() {
+    # Désactiver set -e temporairement pour gérer les erreurs SSH
+    set +e
+
     echo ""
     echo -e "${YELLOW}Déploiement sur tous les nœuds via SSH${NC}"
     echo ""
@@ -292,6 +295,9 @@ deploy_all() {
         echo "  - Les clés SSH sont configurées (ssh-copy-id)"
         echo "  - L'utilisateur a les droits sudo/root"
     fi
+
+    # Réactiver set -e
+    set -e
 }
 
 # Option 4: Sauvegarder
