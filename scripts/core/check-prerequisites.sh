@@ -261,9 +261,6 @@ if [ "$NODE_TYPE" = "worker" ] || [ "$NODE_TYPE" = "auto" ]; then
     check_port 10250 "kubelet API"
 fi
 
-# Ports communs
-check_port 22 "SSH"
-
 echo ""
 
 # 5. CONFIGURATION RÉSEAU
