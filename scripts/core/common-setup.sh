@@ -28,6 +28,36 @@ fi
 # Charger la configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Installer les dépendances critiques si manquantes
+echo -e "${YELLOW}Installation des dépendances critiques...${NC}"
+echo ""
+
+MISSING_PACKAGES=()
+
+# Vérifier iptables
+if ! command -v iptables &> /dev/null; then
+    echo -e "${YELLOW}⚠ iptables non trouvé, installation en cours...${NC}"
+    MISSING_PACKAGES+=("iptables")
+fi
+
+# Vérifier gpg
+if ! command -v gpg &> /dev/null; then
+    echo -e "${YELLOW}⚠ gpg non trouvé, installation en cours...${NC}"
+    MISSING_PACKAGES+=("gpg")
+fi
+
+# Installer les paquets manquants
+if [ ${#MISSING_PACKAGES[@]} -gt 0 ]; then
+    echo -e "${BLUE}Installation de: ${MISSING_PACKAGES[*]}${NC}"
+    apt-get update -qq
+    apt-get install -y "${MISSING_PACKAGES[@]}" -qq
+    echo -e "${GREEN}✓ Dépendances critiques installées${NC}"
+else
+    echo -e "${GREEN}✓ Toutes les dépendances critiques sont présentes${NC}"
+fi
+
+echo ""
+
 # Vérifier les prérequis système avant toute chose
 if [ -f "$SCRIPT_DIR/check-prerequisites.sh" ]; then
     echo -e "${YELLOW}Vérification des prérequis système...${NC}"

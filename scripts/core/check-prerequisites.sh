@@ -6,7 +6,8 @@
 # Version: 2.0
 ################################################################################
 
-set -e
+# Note: pas de 'set -e' car ce script doit continuer même si certaines vérifications échouent
+# Les erreurs sont comptabilisées dans $ERRORS et $WARNINGS
 
 # Couleurs
 RED='\033[0;31m'
