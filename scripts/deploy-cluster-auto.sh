@@ -233,14 +233,9 @@ KEEPALIVED_EOF
     fi
     echo ""
 
-    # Étape 4: Initialisation du cluster
+    # Étape 4: Initialisation du cluster (inclut Calico CNI)
     echo -e "${BLUE}[2.4] Initialisation du cluster...${NC}"
     "$SCRIPT_DIR/core/init-cluster.sh"
-    echo ""
-
-    # Étape 5: Installation Calico
-    echo -e "${BLUE}[2.5] Installation Calico CNI...${NC}"
-    "$SCRIPT_DIR/core/install-calico.sh"
     echo ""
 fi
 
@@ -320,33 +315,49 @@ for worker in "${WORKERS[@]}"; do
 
     # Exécuter common-setup.sh
     echo -ne "  [3/4] Configuration commune... "
-    if ssh "${SSH_USER}@${IP}" "cd /root/k8s-install && bash core/common-setup.sh" >/dev/null 2>&1; then
+    ERROR_OUTPUT=$(ssh "${SSH_USER}@${IP}" "cd /root/k8s-install && bash core/common-setup.sh" 2>&1)
+    EXIT_CODE=$?
+    if [ $EXIT_CODE -eq 0 ]; then
         echo -e "${GREEN}✓${NC}"
     else
         echo -e "${RED}✗ Échec${NC}"
-        ((FAILED_COUNT++))
         echo ""
+        echo -e "${YELLOW}Erreur détaillée (code: $EXIT_CODE):${NC}"
+        echo "$ERROR_OUTPUT" | tail -20
+        echo ""
+        ((FAILED_COUNT++))
         continue
     fi
 
     # Exécuter worker-setup.sh
     echo -ne "  [4/4] Configuration worker... "
-    if ssh "${SSH_USER}@${IP}" "cd /root/k8s-install && bash core/worker-setup.sh" >/dev/null 2>&1; then
+    ERROR_OUTPUT=$(ssh "${SSH_USER}@${IP}" "cd /root/k8s-install && bash core/worker-setup.sh" 2>&1)
+    EXIT_CODE=$?
+    if [ $EXIT_CODE -eq 0 ]; then
         echo -e "${GREEN}✓${NC}"
     else
         echo -e "${RED}✗ Échec${NC}"
-        ((FAILED_COUNT++))
         echo ""
+        echo -e "${YELLOW}Erreur détaillée (code: $EXIT_CODE):${NC}"
+        echo "$ERROR_OUTPUT" | tail -20
+        echo ""
+        ((FAILED_COUNT++))
         continue
     fi
 
     # Joindre le cluster
     echo -ne "  [+] Jointure au cluster... "
-    if ssh "${SSH_USER}@${IP}" "$KUBEADM_JOIN" >/dev/null 2>&1; then
+    ERROR_OUTPUT=$(ssh "${SSH_USER}@${IP}" "$KUBEADM_JOIN" 2>&1)
+    EXIT_CODE=$?
+    if [ $EXIT_CODE -eq 0 ]; then
         echo -e "${GREEN}✓${NC}"
         ((SUCCESS_COUNT++))
     else
         echo -e "${RED}✗ Échec${NC}"
+        echo ""
+        echo -e "${YELLOW}Erreur détaillée (code: $EXIT_CODE):${NC}"
+        echo "$ERROR_OUTPUT" | tail -20
+        echo ""
         ((FAILED_COUNT++))
     fi
 
