@@ -136,34 +136,48 @@ echo -e "${CYAN}═════════════════════�
 echo ""
 
 # Vérifier si le cluster est déjà initialisé
-if systemctl is-active --quiet kubelet && [ -f /etc/kubernetes/admin.conf ]; then
-    echo -e "${YELLOW}⚠ Le cluster Kubernetes semble déjà initialisé${NC}"
+if systemctl is-active --quiet kubelet 2>/dev/null || [ -f /etc/kubernetes/admin.conf ]; then
+    echo -e "${YELLOW}⚠ Un cluster Kubernetes existe déjà sur ce nœud${NC}"
     echo ""
-    read -p "Voulez-vous réinitialiser le cluster? [y/N]: " confirm
+    read -p "Voulez-vous RÉINITIALISER et réinstaller le cluster? [y/N]: " confirm
 
     if [[ $confirm =~ ^[Yy]$ ]]; then
-        echo -e "${YELLOW}Réinitialisation du cluster...${NC}"
-        kubeadm reset -f
-        rm -rf ~/.kube /etc/kubernetes /var/lib/etcd
-
-        # Restaurer les politiques iptables
-        iptables -P INPUT ACCEPT
-        iptables -P FORWARD ACCEPT
-        iptables -P OUTPUT ACCEPT
-        iptables -F
-        iptables -t nat -F
-        iptables -t mangle -F
-        iptables -X
-
-        systemctl restart containerd
-        echo -e "${GREEN}✓ Cluster réinitialisé${NC}"
+        echo -e "${YELLOW}Réinitialisation complète du cluster...${NC}"
         echo ""
-    else
-        echo -e "${YELLOW}Conservation du cluster existant${NC}"
-        echo -e "${YELLOW}Passage à l'installation des workers...${NC}"
+
+        # Arrêter les services
+        systemctl stop kubelet 2>/dev/null || true
+        systemctl stop containerd 2>/dev/null || true
+
+        # Reset kubeadm
+        kubeadm reset -f 2>/dev/null || true
+
+        # Nettoyer les fichiers
+        rm -rf ~/.kube /etc/kubernetes /var/lib/etcd /var/lib/kubelet
+        rm -rf /etc/cni/net.d
+
+        # Restaurer les politiques iptables AVANT de nettoyer
+        iptables -P INPUT ACCEPT 2>/dev/null || true
+        iptables -P FORWARD ACCEPT 2>/dev/null || true
+        iptables -P OUTPUT ACCEPT 2>/dev/null || true
+
+        # Nettoyer les règles iptables
+        iptables -F 2>/dev/null || true
+        iptables -t nat -F 2>/dev/null || true
+        iptables -t mangle -F 2>/dev/null || true
+        iptables -X 2>/dev/null || true
+
+        # Redémarrer containerd
+        systemctl restart containerd
+        systemctl enable containerd
+
+        echo -e "${GREEN}✓ Cluster complètement réinitialisé${NC}"
         echo ""
         sleep 2
-        goto_workers=true
+    else
+        echo -e "${YELLOW}❌ Installation annulée${NC}"
+        echo -e "${YELLOW}Pour conserver le cluster existant, utilisez les options de gestion${NC}"
+        exit 0
     fi
 fi
 
@@ -180,15 +194,43 @@ if [ "$goto_workers" != true ]; then
 
     # Étape 3: Keepalived (MASTER - Priority 101)
     echo -e "${BLUE}[2.3] Configuration keepalived...${NC}"
-    # Créer un fichier de configuration pour keepalived en mode automatique
-    export KEEPALIVED_STATE="MASTER"
-    export KEEPALIVED_PRIORITY="101"
-    "$SCRIPT_DIR/core/setup-keepalived.sh" <<EOF
-y
-101
 
-y
-EOF
+    # Détecter l'interface réseau principale
+    INTERFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
+
+    # Créer directement le fichier de configuration keepalived
+    mkdir -p /etc/keepalived
+    cat > /etc/keepalived/keepalived.conf <<KEEPALIVED_EOF
+vrrp_instance VI_1 {
+    state MASTER
+    interface ${INTERFACE}
+    virtual_router_id ${VRRP_ROUTER_ID}
+    priority 101
+    advert_int ${VRRP_ADVERT_INT}
+
+    authentication {
+        auth_type PASS
+        auth_pass ${VRRP_PASSWORD}
+    }
+
+    virtual_ipaddress {
+        ${VIP}/24
+    }
+}
+KEEPALIVED_EOF
+
+    # Redémarrer keepalived
+    systemctl restart keepalived
+    systemctl enable keepalived
+
+    # Vérifier l'état
+    sleep 2
+    if systemctl is-active --quiet keepalived; then
+        echo -e "${GREEN}✓ Keepalived configuré et actif${NC}"
+    else
+        echo -e "${RED}✗ Erreur keepalived${NC}"
+        journalctl -u keepalived --no-pager -n 20
+    fi
     echo ""
 
     # Étape 4: Initialisation du cluster
