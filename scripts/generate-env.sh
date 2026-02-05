@@ -27,15 +27,19 @@ echo ""
 # Fonction pour générer un mot de passe fort
 generate_password() {
     local length=${1:-16}
+    local password
 
     # Vérifier si openssl est disponible
     if command -v openssl &> /dev/null; then
         # Générer avec openssl (alphanumerique + symboles)
-        openssl rand -base64 "$length" | tr -d "=+/" | cut -c1-"$length"
+        password=$(openssl rand -base64 "$length" | tr -d "=+/\n" | cut -c1-"$length")
     else
         # Fallback avec /dev/urandom
-        tr -dc 'A-Za-z0-9!@#$%^&*' < /dev/urandom | head -c "$length"
+        password=$(tr -dc 'A-Za-z0-9!@#$%^&*' < /dev/urandom | head -c "$length")
     fi
+
+    # Retourner sans newline
+    echo -n "$password"
 }
 
 # Fonction pour valider la force d'un mot de passe
@@ -72,7 +76,8 @@ prompt_value() {
         value=${value:-$default_value}
     fi
 
-    echo "$value"
+    # Retourner sans newline
+    echo -n "$value"
 }
 
 # Vérifier si .env existe déjà
