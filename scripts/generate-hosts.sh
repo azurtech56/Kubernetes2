@@ -253,13 +253,27 @@ deploy_all() {
     SUCCESS_COUNT=0
     FAILED_COUNT=0
 
+    # Détecter l'IP locale du nœud actuel
+    LOCAL_IP=$(hostname -I | awk '{print $1}')
+
     for node in "${NODES[@]}"; do
         IP="${node%%:*}"
         HOSTNAME="${node##*:}"
 
         echo -ne "  ${YELLOW}→${NC} ${HOSTNAME} (${IP})... "
 
-        # Tester la connectivité SSH
+        # Vérifier si c'est le nœud local
+        if [ "$IP" = "$LOCAL_IP" ] || [ "$IP" = "127.0.0.1" ] || [ "$IP" = "localhost" ]; then
+            # Déploiement local - pas besoin de SSH
+            cp /etc/hosts "/etc/hosts.backup.$(date +%Y%m%d_%H%M%S)" 2>/dev/null
+            cp /tmp/hosts.deploy /etc/hosts
+            chmod 644 /etc/hosts
+            echo -e "${GREEN}✓ OK (local)${NC}"
+            ((SUCCESS_COUNT++))
+            continue
+        fi
+
+        # Tester la connectivité SSH pour les nœuds distants
         if ! ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=no "${SSH_USER}@${IP}" "exit" 2>/dev/null; then
             echo -e "${RED}✗ Échec (SSH inaccessible)${NC}"
             ((FAILED_COUNT++))

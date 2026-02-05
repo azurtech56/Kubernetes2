@@ -172,12 +172,15 @@ show_main_menu() {
     show_header
     echo -e "${BOLD}${BLUE}═══ MENU PRINCIPAL ═══${NC}"
     echo ""
-    echo -e "${GREEN}[1]${NC}  Installation complète (Assistant)"
-    echo -e "${GREEN}[2]${NC}  Installation par étapes"
-    echo -e "${GREEN}[3]${NC}  Installation des Add-ons"
-    echo -e "${GREEN}[4]${NC}  Gestion du cluster"
-    echo -e "${GREEN}[5]${NC}  Vérifications et diagnostics"
-    echo -e "${GREEN}[6]${NC}  Informations et aide"
+    echo -e "${BOLD}${GREEN}[1]  🚀 Déploiement automatique complet${NC} ${YELLOW}(Recommandé)${NC}"
+    echo -e "     ${CYAN}Installation complète depuis le master vers tous les workers${NC}"
+    echo ""
+    echo -e "${GREEN}[2]${NC}  Installation guidée (Assistant)"
+    echo -e "${GREEN}[3]${NC}  Installation par étapes"
+    echo -e "${GREEN}[4]${NC}  Installation des Add-ons"
+    echo -e "${GREEN}[5]${NC}  Gestion du cluster"
+    echo -e "${GREEN}[6]${NC}  Vérifications et diagnostics"
+    echo -e "${GREEN}[7]${NC}  Informations et aide"
     echo ""
     echo -e "${RED}[0]${NC}  Quitter"
     echo ""
@@ -962,9 +965,13 @@ main() {
 
         case $choice in
             1)
-                installation_wizard
+                # Déploiement automatique complet
+                run_script_with_privilege "./deploy-cluster-auto.sh" true
                 ;;
             2)
+                installation_wizard
+                ;;
+            3)
                 # Menu installation par étapes
                 while true; do
                     show_step_menu
@@ -985,7 +992,7 @@ main() {
                     esac
                 done
                 ;;
-            3)
+            4)
                 # Menu add-ons
                 while true; do
                     show_addons_menu
@@ -1011,13 +1018,13 @@ main() {
                     esac
                 done
                 ;;
-            4)
+            5)
                 manage_cluster
                 ;;
-            5)
+            6)
                 run_diagnostics
                 ;;
-            6)
+            7)
                 help_menu
                 ;;
             0)
