@@ -1035,7 +1035,7 @@ main() {
 }
 
 # Vérifier si on est dans le bon répertoire
-if [ ! -f "common-setup.sh" ]; then
+if [ ! -f "core/common-setup.sh" ]; then
     echo -e "${RED}Erreur: Scripts non trouvés dans le répertoire courant${NC}"
     echo -e "${YELLOW}Veuillez exécuter ce script depuis le répertoire scripts/${NC}"
     exit 1
