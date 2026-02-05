@@ -277,7 +277,7 @@ echo ""
 # Créer un tarball des scripts pour le transfert
 echo -e "${BLUE}Préparation du package de scripts...${NC}"
 cd "$SCRIPT_DIR"
-tar -czf /tmp/k8s-scripts.tar.gz core/ lib/ config.sh .env 2>/dev/null
+tar -czf /tmp/k8s-scripts.tar.gz core/ lib/ lib-config.sh config.sh .env 2>/dev/null
 echo -e "${GREEN}✓ Package créé${NC}"
 echo ""
 
