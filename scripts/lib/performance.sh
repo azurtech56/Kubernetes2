@@ -232,6 +232,42 @@ optimized_apt_install() {
 # PERFORMANCE MONITORING
 # ============================================================================
 
+# Tableau associatif pour stocker les timers
+declare -gA TIMER_START_TIMES
+
+# Démarrer un timer
+# Usage: start_timer "timer_name"
+start_timer() {
+    local timer_name="$1"
+    TIMER_START_TIMES["$timer_name"]=$(date +%s)
+}
+
+# Arrêter un timer et afficher le temps écoulé
+# Usage: stop_timer "timer_name"
+stop_timer() {
+    local timer_name="$1"
+    local start_time="${TIMER_START_TIMES[$timer_name]}"
+
+    if [ -z "$start_time" ]; then
+        echo -e "${YELLOW}⚠ Timer '$timer_name' non démarré${NC}"
+        return 1
+    fi
+
+    local end_time=$(date +%s)
+    local elapsed=$((end_time - start_time))
+
+    local minutes=$((elapsed / 60))
+    local seconds=$((elapsed % 60))
+
+    if [ $minutes -gt 0 ]; then
+        echo -e "${GREEN}✓ [$timer_name] Temps d'exécution: ${minutes}m ${seconds}s${NC}"
+    else
+        echo -e "${GREEN}✓ [$timer_name] Temps d'exécution: ${seconds}s${NC}"
+    fi
+
+    unset TIMER_START_TIMES["$timer_name"]
+}
+
 time_execution() {
     local start=$(date +%s%N)
 
@@ -266,6 +302,8 @@ export -f parallel_download_manifests
 export -f preload_docker_images
 export -f optimized_apt_update
 export -f optimized_apt_install
+export -f start_timer
+export -f stop_timer
 export -f time_execution
 
 echo -e "${GREEN}✓ Performance library loaded${NC}"
